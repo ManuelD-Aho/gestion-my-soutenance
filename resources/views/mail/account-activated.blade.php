@@ -1,0 +1,1 @@
+<p>Votre compte a été activé. Votre login est : {{ $user->email }} et votre mot de passe temporaire est : {{ $password }}.</p>
