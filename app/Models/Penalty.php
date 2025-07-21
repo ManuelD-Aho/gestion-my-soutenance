@@ -1,16 +1,46 @@
 <?php
 
-namespace App\Models;
+    namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+    use App\Enums\PenaltyStatusEnum;
+    use Illuminate\Database\Eloquent\Factories\HasFactory;
+    use Illuminate\Database\Eloquent\Model;
+    use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Penalty extends Model
-{
-    use HasFactory;
+    class Penalty extends Model
+    {
+        use HasFactory;
 
-    // protected $fillable = [];
-    // protected $primaryKey = 'id_annee_academique'; // If not 'id'
-    // public $incrementing = false; // If primary key is not auto-incrementing
-    // protected $keyType = 'string'; // If primary key is string
-}
+        protected $fillable = [
+            'penalty_id', 'student_id', 'academic_year_id', 'type',
+            'amount', 'reason', 'status', 'creation_date', 'resolution_date',
+            'admin_staff_id',
+        ];
+
+        protected $casts = [
+            'creation_date' => 'datetime',
+            'resolution_date' => 'datetime',
+            'status' => PenaltyStatusEnum::class,
+        ];
+
+        // Relations
+        public function student(): BelongsTo
+        {
+            return $this->belongsTo(Student::class);
+        }
+
+        public function academicYear(): BelongsTo
+        {
+            return $this->belongsTo(AcademicYear::class);
+        }
+
+        public function penaltyStatus(): BelongsTo
+        {
+            return $this->belongsTo(PenaltyStatus::class, 'status'); // Si le nom de la colonne est 'status'
+        }
+
+        public function administrativeStaff(): BelongsTo
+        {
+            return $this->belongsTo(AdministrativeStaff::class, 'admin_staff_id');
+        }
+    }

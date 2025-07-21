@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Enums;
+    namespace App\Enums;
 
-enum PvApprovalDecisionEnum: string
-{
-    // Define enum cases here
-}
+    enum PvApprovalDecisionEnum: string
+    {
+        case APPROVED = 'Approuvé';
+        case CHANGES_REQUESTED = 'Modification Demandée';
+        case REJECTED = 'Rejeté';
+    }

@@ -1,8 +1,11 @@
 <?php
 
-namespace App\Enums;
+    namespace App\Enums;
 
-enum PvStatusEnum: string
-{
-    // Define enum cases here
-}
+    enum PvStatusEnum: string
+    {
+        case DRAFT = 'Brouillon';
+        case PENDING_APPROVAL = 'En attente d\'approbation';
+        case APPROVED = 'Validé';
+        case REJECTED = 'Rejeté';
+    }

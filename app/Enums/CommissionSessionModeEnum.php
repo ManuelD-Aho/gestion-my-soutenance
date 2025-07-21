@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Enums;
+    namespace App\Enums;
 
-enum CommissionSessionModeEnum: string
-{
-    // Define enum cases here
-}
+    enum CommissionSessionModeEnum: string
+    {
+        case IN_PERSON = 'Présentiel';
+        case ONLINE = 'En ligne';
+        case HYBRID = 'Hybride';
+    }

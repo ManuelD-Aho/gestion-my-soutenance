@@ -1,16 +1,50 @@
 <?php
 
-namespace App\Models;
+    namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+    use App\Enums\VoteDecisionEnum;
+    use Illuminate\Database\Eloquent\Factories\HasFactory;
+    use Illuminate\Database\Eloquent\Model;
+    use Illuminate\Database\Eloquent\Relations\BelongsTo;
+    use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class Vote extends Model
-{
-    use HasFactory;
+    class Vote extends Model
+    {
+        use HasFactory;
 
-    // protected $fillable = [];
-    // protected $primaryKey = 'id_annee_academique'; // If not 'id'
-    // public $incrementing = false; // If primary key is not auto-incrementing
-    // protected $keyType = 'string'; // If primary key is string
-}
+        protected $fillable = [
+            'vote_id', 'commission_session_id', 'report_id', 'teacher_id',
+            'vote_decision_id', 'comment', 'vote_date', 'vote_round',
+        ];
+
+        protected $casts = [
+            'vote_date' => 'datetime',
+            'vote_decision_id' => VoteDecisionEnum::class, // Cast pour l'Enum
+        ];
+
+        // Relations
+        public function commissionSession(): BelongsTo
+        {
+            return $this->belongsTo(CommissionSession::class);
+        }
+
+        public function report(): BelongsTo
+        {
+            return $this->belongsTo(Report::class);
+        }
+
+        public function teacher(): BelongsTo
+        {
+            return $this->belongsTo(Teacher::class);
+        }
+
+        public function voteDecision(): BelongsTo
+        {
+            return $this->belongsTo(VoteDecision::class);
+        }
+
+        public function auditLogs(): MorphMany
+        {
+            return $this->morphMany(AuditLog::class, 'auditable');
+        }
+    }

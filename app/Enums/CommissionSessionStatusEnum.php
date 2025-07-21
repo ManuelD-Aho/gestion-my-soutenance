@@ -1,8 +1,11 @@
 <?php
 
-namespace App\Enums;
+    namespace App\Enums;
 
-enum CommissionSessionStatusEnum: string
-{
-    // Define enum cases here
-}
+    enum CommissionSessionStatusEnum: string
+    {
+        case PLANNED = 'Planifiée';
+        case IN_PROGRESS = 'En cours';
+        case CLOSED = 'Clôturée';
+        case ARCHIVED = 'Archivée';
+    }

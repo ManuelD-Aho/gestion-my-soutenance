@@ -1,16 +1,39 @@
 <?php
 
-namespace App\Models;
+    namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+    use Illuminate\Database\Eloquent\Factories\HasFactory;
+    use Illuminate\Database\Eloquent\Model;
+    use Illuminate\Database\Eloquent\Relations\BelongsTo;
+    use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class AuditLog extends Model
-{
-    use HasFactory;
+    class AuditLog extends Model
+    {
+        use HasFactory;
 
-    // protected $fillable = [];
-    // protected $primaryKey = 'id_annee_academique'; // If not 'id'
-    // public $incrementing = false; // If primary key is not auto-incrementing
-    // protected $keyType = 'string'; // If primary key is string
-}
+        protected $fillable = [
+            'log_id', 'user_id', 'action_id', 'action_date', 'ip_address', 'user_agent',
+            'auditable_type', 'auditable_id', 'details',
+        ];
+
+        protected $casts = [
+            'action_date' => 'datetime',
+            'details' => 'array', // Cast le champ JSON en tableau PHP
+        ];
+
+        // Relations
+        public function user(): BelongsTo
+        {
+            return $this->belongsTo(User::class);
+        }
+
+        public function action(): BelongsTo
+        {
+            return $this->belongsTo(Action::class);
+        }
+
+        public function auditable(): MorphTo
+        {
+            return $this->morphTo();
+        }
+    }

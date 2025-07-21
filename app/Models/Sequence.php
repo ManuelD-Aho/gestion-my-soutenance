@@ -1,16 +1,18 @@
 <?php
 
-namespace App\Models;
+    namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+    use Illuminate\Database\Eloquent\Factories\HasFactory;
+    use Illuminate\Database\Eloquent\Model;
 
-class Sequence extends Model
-{
-    use HasFactory;
+    class Sequence extends Model
+    {
+        use HasFactory;
 
-    // protected $fillable = [];
-    // protected $primaryKey = 'id_annee_academique'; // If not 'id'
-    // public $incrementing = false; // If primary key is not auto-incrementing
-    // protected $keyType = 'string'; // If primary key is string
-}
+        protected $fillable = ['name', 'year', 'value'];
+
+        // Clé primaire composite
+        protected $primaryKey = ['name', 'year'];
+        public $incrementing = false;
+        protected $keyType = 'string'; // Les clés primaires sont des strings (name, year)
+    }
