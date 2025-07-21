@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
-// use Illuminate\Support\Facades\Gate;
+use App\Models\Report;
+use App\Policies\ReportPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate; // Assurez-vous que cette façade est importée
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -13,7 +15,9 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        // 'App\Models\Model' => 'App\Policies\ModelPolicy',
+        Report::class => ReportPolicy::class,
+        // 'App\Models\Model' => 'App\Policies\ModelPolicy', // Exemple par défaut de Laravel
+        // Ajoutez ici toutes vos autres politiques (ex: User::class => UserPolicy::class)
     ];
 
     /**
@@ -23,6 +27,12 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        //
+        // Vous pouvez définir des Gates ici si nécessaire, en complément des Policies.
+        // Exemple de Gate pour l'administrateur (peut être défini dans une Policy ou un Service Provider)
+        Gate::before(function ($user, $ability) {
+            if ($user->hasRole('Admin')) { // Assurez-vous que Spatie est configuré pour les rôles
+                return true; // L'administrateur a tous les droits
+            }
+        });
     }
 }
