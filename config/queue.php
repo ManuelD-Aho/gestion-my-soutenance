@@ -90,4 +90,37 @@ return [
         'table' => 'failed_jobs',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Custom Queues for Specific Workloads
+    |--------------------------------------------------------------------------
+    |
+    | Define additional queues for specific types of jobs. This allows you
+    | to dedicate workers to certain tasks (e.g., PDF generation, imports)
+    | to prevent heavy jobs from blocking time-sensitive tasks.
+    |
+    */
+    'queues' => [
+        'default' => [
+            'driver' => env('QUEUE_CONNECTION', 'database'),
+            'queue' => 'default',
+        ],
+        'pdfs' => [
+            'driver' => env('QUEUE_CONNECTION', 'database'),
+            'queue' => 'pdfs',
+        ],
+        'imports' => [
+            'driver' => env('QUEUE_CONNECTION', 'database'),
+            'queue' => 'imports',
+        ],
+        'notifications' => [
+            'driver' => env('QUEUE_CONNECTION', 'database'),
+            'queue' => 'notifications',
+        ],
+        'maintenance' => [
+            'driver' => env('QUEUE_CONNECTION', 'database'),
+            'queue' => 'maintenance',
+        ],
+    ],
+
 ];

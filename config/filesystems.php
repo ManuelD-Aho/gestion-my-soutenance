@@ -56,6 +56,28 @@ return [
             'throw' => false,
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | Custom Disks for Generated Documents
+        |--------------------------------------------------------------------------
+        |
+        | Define specific disks for storing generated documents, separating
+        | private (server-side access only) from public (web-accessible) files.
+        |
+        */
+        'private_documents' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/documents'),
+            'visibility' => 'private', // S'assurer que le serveur web ne peut pas y accéder directement
+            'throw' => false,
+        ],
+        'public_documents' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/documents'),
+            'url' => env('APP_URL').'/storage/documents',
+            'visibility' => 'public', // Accessible via URL directe
+            'throw' => false,
+        ],
     ],
 
     /*
@@ -71,6 +93,8 @@ return [
 
     'links' => [
         public_path('storage') => storage_path('app/public'),
+        // Ajoutez un lien symbolique pour les documents publics si vous les mettez dans un sous-dossier de public/
+        public_path('storage/documents') => storage_path('app/public/documents'),
     ],
 
 ];

@@ -1,24 +1,34 @@
 <?php
 
-    namespace App\Models;
+namespace App\Models;
 
-    use Illuminate\Database\Eloquent\Factories\HasFactory;
-    use Illuminate\Database\Eloquent\Model;
-    use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-    class ConformityCriterion extends Model
+class ConformityCriterion extends Model
+{
+    use HasFactory;
+
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
+
+    protected $fillable = [
+        'label',
+        'description',
+        'is_active',
+        'type', // 'MANUAL', 'AUTOMATIC'
+        'version', // Pour le versionnage des critères
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'version' => 'int',
+    ];
+
+    public function conformityCheckDetails(): HasMany
     {
-        use HasFactory;
-
-        protected $fillable = ['label', 'description', 'is_active'];
-
-        protected $casts = [
-            'is_active' => 'boolean',
-        ];
-
-        // Relations
-        public function conformityCheckDetails(): HasMany
-        {
-            return $this->hasMany(ConformityCheckDetail::class); // Assurez-vous de créer ce modèle
-        }
+        return $this->hasMany(ConformityCheckDetail::class);
     }
+}

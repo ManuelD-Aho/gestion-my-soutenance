@@ -2,37 +2,43 @@
 
 namespace App\Providers;
 
+use App\Models\AcademicYear;
+use App\Models\AdministrativeStaff;
 use App\Models\Report;
+use App\Models\Student;
+use App\Models\Teacher; // Utiliser Teacher pour la cohérence
+use App\Models\User;
+use App\Policies\AcademicYearPolicy;
+use App\Policies\AdministrativeStaffPolicy;
 use App\Policies\ReportPolicy;
+use App\Policies\StudentPolicy;
+use App\Policies\TeacherPolicy; // Utiliser TeacherPolicy
+use App\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Gate; // Assurez-vous que cette façade est importée
+use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
-    /**
-     * The model to policy mappings for the application.
-     *
-     * @var array<class-string, class-string>
-     */
     protected $policies = [
+        AcademicYear::class => AcademicYearPolicy::class,
+        AdministrativeStaff::class => AdministrativeStaffPolicy::class,
+        Teacher::class => TeacherPolicy::class, // Enregistrement de TeacherPolicy
         Report::class => ReportPolicy::class,
-        // 'App\Models\Model' => 'App\Policies\ModelPolicy', // Exemple par défaut de Laravel
-        // Ajoutez ici toutes vos autres politiques (ex: User::class => UserPolicy::class)
+        Student::class => StudentPolicy::class,
+        User::class => UserPolicy::class,
     ];
 
-    /**
-     * Register any authentication / authorization services.
-     */
     public function boot(): void
     {
         $this->registerPolicies();
 
-        // Vous pouvez définir des Gates ici si nécessaire, en complément des Policies.
-        // Exemple de Gate pour l'administrateur (peut être défini dans une Policy ou un Service Provider)
+        // Gate pour l'impersonation (Lab404/Laravel-Impersonate)
+        // L'administrateur a tous les droits et peut impersoner.
         Gate::before(function ($user, $ability) {
-            if ($user->hasRole('Admin')) { // Assurez-vous que Spatie est configuré pour les rôles
-                return true; // L'administrateur a tous les droits
+            if ($user->hasRole('Admin')) {
+                return true;
             }
+            return null;
         });
     }
 }

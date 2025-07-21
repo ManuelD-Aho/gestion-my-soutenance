@@ -78,7 +78,7 @@ return array(
          * direct class use like:
          * $dompdf = new DOMPDF();  $dompdf->load_html($htmldata); $dompdf->render(); $pdfdata = $dompdf->output();
          */
-        "chroot" => realpath(base_path()),
+        "chroot" => realpath(base_path()), // Le chroot par défaut est souvent suffisant, mais le renforcer en cas de doute.
 
         /**
          * Protocol whitelist
@@ -91,14 +91,26 @@ return array(
          * @var array
          */
         'allowed_protocols' => [
-            "file://" => ["rules" => []],
-            "http://" => ["rules" => []],
-            "https://" => ["rules" => []]
+            // Désactiver explicitement les protocoles à risque pour les images/CSS
+            "file://" => ["rules" => []], // Empêche l'accès aux fichiers locaux (SSRF)
+            "ftp://" => ["rules" => []], // Empêche l'accès FTP
+            "http://" => ["rules" => ['host_whitelist' => [ // Liste blanche des hôtes HTTP/HTTPS autorisés
+                'localhost', // Pour le développement local
+                '127.0.0.1', // Pour le développement local
+                parse_url(env('APP_URL'), PHP_URL_HOST), // Domaine de l'application
+                // 'cdn.example.com', // Ajouter les CDN d'images ou de styles si utilisés
+            ]]],
+            "https://" => ["rules" => ['host_whitelist' => [
+                'localhost',
+                '127.0.0.1',
+                parse_url(env('APP_URL'), PHP_URL_HOST),
+                // 'cdn.example.com',
+            ]]],
         ],
 
-         /**
-          * @var string
-          */
+        /**
+         * @var string
+         */
         'log_output_file' => null,
 
         /**
@@ -171,13 +183,13 @@ return array(
          */
         "default_paper_size" => "a4",
 
-         /**
-          * The default paper orientation.
-          *
-          * The orientation of the page (portrait or landscape).
-          *
-          * @var string
-          */
+        /**
+         * The default paper orientation.
+         *
+         * The orientation of the page (portrait or landscape).
+         *
+         * @var string
+         */
         'default_paper_orientation' => "portrait",
 
         /**
@@ -245,7 +257,7 @@ return array(
          *
          * @var bool
          */
-        "enable_javascript" => true,
+        "enable_javascript" => false, // Désactiver le JS inline pour la sécurité
 
         /**
          * Enable remote file access
@@ -264,7 +276,7 @@ return array(
          *
          * @var bool
          */
-        "enable_remote" => true,
+        "enable_remote" => true, // Laisser à true si vous utilisez des images/CSS externes depuis une liste blanche sécurisée (voir allowed_protocols)
 
         /**
          * A ratio applied to the fonts height to be more like browsers' line height
@@ -279,6 +291,4 @@ return array(
          */
         "enable_html5_parser" => true,
     ),
-
-
 );

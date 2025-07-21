@@ -4,29 +4,22 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Report;
-use App\Enums\ReportStatusEnum; // Assurez-vous d'importer l'Enum
+use App\Enums\ReportStatusEnum;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class ReportPolicy
 {
     use HandlesAuthorization;
 
-    /**
-     * Détermine si l'utilisateur peut voir n'importe quel rapport.
-     */
     public function viewAny(User $user): bool
     {
-        // Exemple: Admin, Responsable Scolarité, Agent de Conformité, Membre Commission peuvent voir tous les rapports.
+        // Admin, Responsable Scolarité, Agent de Conformité, Membre Commission peuvent voir tous les rapports.
         // L'étudiant ne peut voir que les siens (géré par la requête dans la Resource ou une autre Policy).
-        return $user->hasAnyRole(['Admin', 'Responsable Scolarite', 'Agent de Conformite', 'Membre Commission', 'President Commission']);
+        return $user->hasAnyRole(['Admin', 'Responsable Scolarite', 'Agent de Conformite', 'Membre Commission', 'President Commission', 'Etudiant']);
     }
 
-    /**
-     * Détermine si l'utilisateur peut voir un rapport spécifique.
-     */
     public function view(User $user, Report $report): bool
     {
-        // Admin peut tout voir.
         if ($user->hasRole('Admin')) {
             return true;
         }
@@ -50,27 +43,20 @@ class ReportPolicy
 
         // Responsable Scolarité peut voir tous les rapports liés à ses étudiants ou à son année académique.
         if ($user->hasRole('Responsable Scolarite')) {
-            return true; // Ou une logique plus fine si nécessaire
+            return true;
         }
 
         return false;
     }
 
-    /**
-     * Détermine si l'utilisateur peut créer un rapport.
-     */
     public function create(User $user): bool
     {
         // Seul un étudiant peut créer son rapport.
         return $user->hasRole('Etudiant');
     }
 
-    /**
-     * Détermine si l'utilisateur peut mettre à jour un rapport.
-     */
     public function update(User $user, Report $report): bool
     {
-        // Admin peut tout mettre à jour.
         if ($user->hasRole('Admin')) {
             return true;
         }
@@ -83,70 +69,56 @@ class ReportPolicy
         return false;
     }
 
+    public function delete(User $user, Report $report): bool
+    {
+        return $user->hasRole('Admin');
+    }
+
+    public function restore(User $user, Report $report): bool
+    {
+        return $user->hasRole('Admin');
+    }
+
+    public function forceDelete(User $user, Report $report): bool
+    {
+        return $user->hasRole('Admin');
+    }
+
     /**
      * Détermine si l'utilisateur peut changer le statut d'un rapport.
      * Cette méthode est spécifique pour `ReportFlowService->updateReportStatus`.
      */
     public function updateStatus(User $user, Report $report, ReportStatusEnum $newStatus): bool
     {
-        // Admin peut toujours changer n'importe quel statut.
         if ($user->hasRole('Admin')) {
             return true;
         }
 
-        // Agent de Conformité:
         if ($user->hasRole('Agent de Conformite')) {
-            // Peut passer de SUBMITTED ou NEEDS_CORRECTION à IN_CONFORMITY_CHECK, NEEDS_CORRECTION.
-            if ($report->status === ReportStatusEnum::SUBMITTED && in_array($newStatus, [ReportStatusEnum::IN_CONFORMITY_CHECK, ReportStatusEnum::NEEDS_CORRECTION])) {
-                return true;
-            }
-            if ($report->status === ReportStatusEnum::IN_CONFORMITY_CHECK && in_array($newStatus, [ReportStatusEnum::IN_COMMISSION_REVIEW, ReportStatusEnum::NEEDS_CORRECTION])) {
-                return true;
+            // L'Agent de Conformité peut faire passer un rapport soumis ou en vérification
+            // vers 'En vérification conformité' ou 'Nécessite Correction' ou 'En Commission'.
+            if (in_array($report->status, [ReportStatusEnum::SUBMITTED, ReportStatusEnum::IN_CONFORMITY_CHECK])) {
+                return in_array($newStatus, [ReportStatusEnum::IN_CONFORMITY_CHECK, ReportStatusEnum::NEEDS_CORRECTION, ReportStatusEnum::IN_COMMISSION_REVIEW]);
             }
         }
 
-        // Membre/Président Commission:
         if ($user->hasAnyRole(['Membre Commission', 'President Commission'])) {
-            // Peut passer de IN_COMMISSION_REVIEW à VALIDATED, REJECTED, NEEDS_CORRECTION.
-            if ($report->status === ReportStatusEnum::IN_COMMISSION_REVIEW && in_array($newStatus, [ReportStatusEnum::VALIDATED, ReportStatusEnum::REJECTED, ReportStatusEnum::NEEDS_CORRECTION])) {
-                // Logique plus fine: seulement si le rapport est dans une session dont ils sont membres.
-                return true;
+            // Les membres de la commission peuvent faire passer un rapport 'En Commission'
+            // vers 'Validé', 'Rejeté', ou 'Nécessite Correction'.
+            if ($report->status === ReportStatusEnum::IN_COMMISSION_REVIEW) {
+                return in_array($newStatus, [ReportStatusEnum::VALIDATED, ReportStatusEnum::REJECTED, ReportStatusEnum::NEEDS_CORRECTION]);
             }
         }
 
-        // Responsable Scolarité:
         if ($user->hasRole('Responsable Scolarite')) {
-            // Peut archiver un rapport (ex: si l'étudiant abandonne).
-            if ($newStatus === ReportStatusEnum::ARCHIVED) {
-                return true;
-            }
+            // Le Responsable Scolarité peut archiver un rapport (ex: si l'étudiant abandonne).
+            return $newStatus === ReportStatusEnum::ARCHIVED;
         }
+
+        // L'étudiant peut "soumettre" un rapport brouillon ou nécessitant correction.
+        // Cette logique est gérée dans le service ReportFlowService->submitReport
+        // et n'est pas une transition de statut générique par updateStatus.
 
         return false;
-    }
-
-    /**
-     * Détermine si l'utilisateur peut supprimer un rapport.
-     */
-    public function delete(User $user, Report $report): bool
-    {
-        // Opération très restreinte, généralement réservée à l'Admin.
-        return $user->hasRole('Admin');
-    }
-
-    /**
-     * Détermine si l'utilisateur peut restaurer un rapport.
-     */
-    public function restore(User $user, Report $report): bool
-    {
-        return $user->hasRole('Admin');
-    }
-
-    /**
-     * Détermine si l'utilisateur peut forcer la suppression d'un rapport.
-     */
-    public function forceDelete(User $user, Report $report): bool
-    {
-        return $user->hasRole('Admin');
     }
 }

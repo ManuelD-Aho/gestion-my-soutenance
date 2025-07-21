@@ -6,10 +6,7 @@ use Laravel\Jetstream\Membership as JetstreamMembership;
 
 class Membership extends JetstreamMembership
 {
-    /**
-     * Indicates if the IDs are auto-incrementing.
-     *
-     * @var bool
-     */
+    protected $primaryKey = 'id';
     public $incrementing = true;
+    protected $keyType = 'int';
 }

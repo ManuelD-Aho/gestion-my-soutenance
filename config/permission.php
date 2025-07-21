@@ -111,7 +111,7 @@ return [
      * 'model_has_permissions'(view the latest version of package's migration file)
      */
 
-    'teams' => false,
+    'teams' => false, // Ne pas activer si Jetstream gère déjà les équipes
 
     /*
      * When set to true, the required permission names are added to the exception

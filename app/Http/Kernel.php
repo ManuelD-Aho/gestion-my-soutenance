@@ -2,10 +2,10 @@
 
 namespace App\Http;
 
-use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use Illuminate\Foundation\Http\Kernel as HttpKernel; // Cette ligne est cruciale
 
-class Kernel extends HttpKernel
-{
+class Kernel extends HttpKernel // <<<<<< CETTE LIGNE MANQUE
+{ // <<<<<< CETTE ACCCOLADE MANQUE
     /**
      * The application's global HTTP middleware stack.
      *
@@ -36,6 +36,7 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\EnsureSessionIntegrity::class, // Ajouter ici
         ],
 
         'api' => [
@@ -63,5 +64,6 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'student.eligible' => \App\Http\Middleware\EnsureStudentIsEligible::class, // Ajouter cet alias
     ];
-}
+} // <<<<<< CETTE ACCCOLADE MANQUE

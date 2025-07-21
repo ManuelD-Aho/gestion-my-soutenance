@@ -10,15 +10,23 @@ class ReportTemplateSection extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['report_template_id', 'title', 'default_content', 'order', 'is_mandatory'];
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
 
-    protected $casts = [
-        'is_mandatory' => 'boolean', // Assure que 'is_mandatory' est traité comme un booléen
+    protected $fillable = [
+        'report_template_id',
+        'title',
+        'default_content',
+        'order',
+        'is_mandatory', // Si la section est obligatoire
     ];
 
-    /**
-     * Obtenir le modèle de rapport auquel cette section appartient.
-     */
+    protected $casts = [
+        'order' => 'int',
+        'is_mandatory' => 'boolean',
+    ];
+
     public function reportTemplate(): BelongsTo
     {
         return $this->belongsTo(ReportTemplate::class);

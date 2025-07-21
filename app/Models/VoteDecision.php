@@ -1,13 +1,20 @@
 <?php
 
-    namespace App\Models;
+namespace App\Models;
 
-    use Illuminate\Database\Eloquent\Factories\HasFactory;
-    use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-    class VoteDecision extends Model
-    {
-        use HasFactory;
+class VoteDecision extends Model
+{
+    use HasFactory;
 
-        protected $fillable = ['name'];
-    }
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
+
+    protected $fillable = [
+        'name',
+    ];
+}

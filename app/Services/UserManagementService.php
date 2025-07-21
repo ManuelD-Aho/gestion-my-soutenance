@@ -74,7 +74,7 @@ class UserManagementService
                 $this->notificationService->sendEmail(
                     AccountActivatedMail::class,
                     $user,
-                    ['password' => $tempPassword]
+                    ['password' => $tempPassword, 'user' => $user]
                 );
 
                 $this->auditService->logAction("ACCOUNT_ACTIVATED", $user, ['profile_id' => $student->id, 'profile_type' => 'Student']);

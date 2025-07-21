@@ -1,20 +1,27 @@
 <?php
 
-    namespace App\Models;
+namespace App\Models;
 
-    use Illuminate\Database\Eloquent\Factories\HasFactory;
-    use Illuminate\Database\Eloquent\Model;
-    use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-    class Action extends Model
+class Action extends Model
+{
+    use HasFactory;
+
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
+
+    protected $fillable = [
+        'code',
+        'label',
+        'category',
+    ];
+
+    public function auditLogs(): HasMany
     {
-        use HasFactory;
-
-        protected $fillable = ['code', 'label', 'category'];
-
-        // Relations
-        public function auditLogs(): HasMany
-        {
-            return $this->hasMany(AuditLog::class);
-        }
+        return $this->hasMany(AuditLog::class);
     }
+}

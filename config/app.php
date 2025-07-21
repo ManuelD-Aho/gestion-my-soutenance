@@ -215,4 +215,15 @@ return [
         // 'ExampleClass' => App\Example\ExampleClass::class,
     ])->toArray(),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Custom Application Parameters
+    |--------------------------------------------------------------------------
+    |
+    | Here you can define custom application-wide parameters.
+    |
+    */
+    'pv_approval_deadline_days' => env('PV_APPROVAL_DEADLINE_DAYS', 7),
+    'admin_email' => env('ADMIN_EMAIL', 'admin@example.com'),
+
 ];

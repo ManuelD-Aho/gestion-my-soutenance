@@ -1,18 +1,26 @@
 <?php
 
-    namespace App\Models;
+namespace App\Models;
 
-    use Illuminate\Database\Eloquent\Factories\HasFactory;
-    use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-    class Sequence extends Model
-    {
-        use HasFactory;
+class Sequence extends Model
+{
+    use HasFactory;
 
-        protected $fillable = ['name', 'year', 'value'];
+    protected $primaryKey = ['name', 'year']; // Clé primaire composite
+    public $incrementing = false;
+    protected $keyType = 'string';
 
-        // Clé primaire composite
-        protected $primaryKey = ['name', 'year'];
-        public $incrementing = false;
-        protected $keyType = 'string'; // Les clés primaires sont des strings (name, year)
-    }
+    protected $fillable = [
+        'name',
+        'year',
+        'value',
+    ];
+
+    protected $casts = [
+        'year' => 'int',
+        'value' => 'int',
+    ];
+}
