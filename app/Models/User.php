@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\UserAccountStatusEnum;
+use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -16,10 +17,21 @@ use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Jetstream\HasTeams;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Filament\Panel;
 
-class User extends Authenticatable
+/**
+ * @property-read Student|null $student
+ * @property-read Teacher|null $teacher
+ * @property-read AdministrativeStaff|null $administrativeStaff
+ */
+class User extends Authenticatable implements FilamentUser
 {
     use HasApiTokens, HasFactory, HasProfilePhoto, HasRoles, HasTeams, Impersonate, Notifiable, TwoFactorAuthenticatable;
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
 
     protected $primaryKey = 'id';
 
@@ -72,17 +84,17 @@ class User extends Authenticatable
 
     public function student(): HasOne
     {
-        return $this->hasOne(Student::class, 'user_id');
+        return $this->hasOne(Student::class);
     }
 
     public function teacher(): HasOne
     {
-        return $this->hasOne(Teacher::class, 'user_id');
+        return $this->hasOne(Teacher::class);
     }
 
     public function administrativeStaff(): HasOne
     {
-        return $this->hasOne(AdministrativeStaff::class, 'user_id');
+        return $this->hasOne(AdministrativeStaff::class);
     }
 
     public function auditLogs(): HasMany

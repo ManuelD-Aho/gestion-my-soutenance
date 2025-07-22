@@ -19,11 +19,11 @@ use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ImpersonateAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Hash;
-use Lab404\Impersonate\Services\Impersonate;
 
 class UserResource extends Resource
 {
@@ -128,6 +128,7 @@ class UserResource extends Resource
                     ->relationship('roles', 'name'),
             ])
             ->actions([
+                ImpersonateAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
                 Action::make('reset_password')
@@ -194,20 +195,10 @@ class UserResource extends Resource
                                 ->send();
                         }
                     }),
-                Action::make('impersonate')
-                    ->label('Impersonate')
-                    ->icon('heroicon-o-user-circle')
-                    ->color('gray')
-                    ->visible(fn (User $record): bool => auth()->user()->canImpersonate() && $record->canBeImpersonated())
-                    ->action(function (User $record) {
-                        app(Impersonate::class)->take(auth()->user(), $record);
-
-                        return redirect()->route('filament.app.pages.dashboard');
-                    }),
             ])
             ->bulkActions([
-                    //
-                ]);
+                //
+            ]);
     }
 
     public static function getRelations(): array

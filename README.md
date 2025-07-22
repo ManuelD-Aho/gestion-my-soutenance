@@ -3,16 +3,16 @@
 Ce projet est une application de gestion des soutenances, développée avec Laravel et Filament. Elle permet de gérer les étudiants, les rapports, les jurys, les sessions de commission, et bien plus.
 
 ## Sommaire
-1. [Présentation](#présentation)
-2. [Prérequis](#prérequis)
-3. [Installation](#installation)
-4. [Configuration](#configuration)
-5. [Lancement du projet](#lancement-du-projet)
-6. [Structure du projet](#structure-du-projet)
-7. [Commandes utiles](#commandes-utiles)
-8. [Tests](#tests)
-9. [Déploiement](#déploiement)
-10. [Contribuer](#contribuer)
+1. [Présentation](#1-présentation)
+2. [Prérequis](#2-prérequis)
+3. [Installation](#3-installation)
+4. [Configuration](#4-configuration)
+5. [Lancement du projet](#5-lancement-du-projet)
+6. [Structure du projet](#6-structure-du-projet)
+7. [Commandes utiles](#7-commandes-utiles)
+8. [Tests](#8-tests)
+9. [Déploiement](#9-déploiement)
+10. [Contribuer](#10-contribuer)
 
 ---
 

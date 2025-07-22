@@ -8,8 +8,11 @@ use App\Events\ReportStatusChanged;
 
 class SendNotification
 {
+    /**
+     * Handle the event.
+     */
     public function handle(ReportStatusChanged $event): void
     {
-        // Send notification based on event
+        // Logic to send notification
     }
 }

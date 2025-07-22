@@ -8,8 +8,11 @@ use App\Events\UserLoggedIn;
 
 class LogUserActivity
 {
+    /**
+     * Handle the event.
+     */
     public function handle(UserLoggedIn $event): void
     {
-        // Log user activity
+        // Logic to log user activity
     }
 }

@@ -8,6 +8,7 @@ use App\Filament\AppPanel\Resources\InternshipResource\Pages;
 use App\Models\Internship;
 use App\Models\Student;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -174,8 +175,13 @@ class InternshipResource extends Resource
                     ->color('success')
                     ->visible(fn (Internship $record) => $isRS && ! $record->is_validated)
                     ->requiresConfirmation()
-                    ->action(function (Internship $record) use ($user) {
+                    ->action(function (Internship $record) {
                         try {
+                            /** @var \App\Models\User $user */
+                            $user = Auth::user();
+                            if (!$user) {
+                                throw new \Exception('Utilisateur non authentifié.');
+                            }
                             $record->is_validated = true;
                             $record->validation_date = now();
                             $record->validated_by_user_id = $user->id;
@@ -187,8 +193,8 @@ class InternshipResource extends Resource
                     }),
             ])
             ->bulkActions([
-                    // Pas d'actions de masse par défaut
-                ]);
+                // Pas d'actions de masse par défaut
+            ]);
     }
 
     public static function getRelations(): array

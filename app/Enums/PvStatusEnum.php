@@ -12,4 +12,5 @@ enum PvStatusEnum: string
     case REJECTED = 'Rejeté';
     case ARCHIVED = 'Archivé'; // <-- AJOUTER CETTE LIGNE
     case IN_REVISION = 'En révision'; // Si vous avez ce statut pour les PVs
+    const CHANGES_REQUESTED = 'Change';
 }

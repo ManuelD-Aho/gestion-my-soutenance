@@ -15,16 +15,17 @@ use App\Services\ReportFlowService;
 use Filament\Actions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Infolists\Components\BadgeEntry;
+use Filament\Infolists\Components\Badge;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
-class ViewReport extends \Filament\Resources\Pages\ViewRecord
+class ViewReport extends ViewRecord
 {
     protected static string $resource = ReportResource::class;
 
@@ -163,8 +164,10 @@ class ViewReport extends \Filament\Resources\Pages\ViewRecord
                             return Storage::download($document->file_path);
                         }
                         Notification::make()->title('Fichier non trouvé')->body('Le PDF du rapport n\'est pas encore disponible ou a été supprimé.')->danger()->send();
+                        return null;
                     } catch (\Throwable $e) {
                         Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
+                        return null;
                     }
                 });
         }
@@ -190,17 +193,10 @@ class ViewReport extends \Filament\Resources\Pages\ViewRecord
                         TextEntry::make('student.full_name')->label('Étudiant'),
                         TextEntry::make('academicYear.label')->label('Année Académique'),
                         TextEntry::make('reportTemplate.name')->label('Modèle de Rapport'),
-                        BadgeEntry::make('status')->label('Statut du Rapport')
-                            ->colors([
-                                'gray' => ReportStatusEnum::DRAFT->value,
-                                'info' => ReportStatusEnum::SUBMITTED->value,
-                                'warning' => ReportStatusEnum::NEEDS_CORRECTION->value,
-                                'primary' => ReportStatusEnum::IN_CONFORMITY_CHECK->value,
-                                'secondary' => ReportStatusEnum::IN_COMMISSION_REVIEW->value,
-                                'success' => ReportStatusEnum::VALIDATED->value,
-                                'danger' => ReportStatusEnum::REJECTED->value,
-                                'dark' => ReportStatusEnum::ARCHIVED->value,
-                            ]),
+                        Badge::make('status')
+                            ->label('Statut du Rapport')
+                            ->color(fn ($state): string => $state->getColor())
+                            ->icon(fn ($state): string => $state->getIcon()),
                         TextEntry::make('page_count')->label('Nombre de Pages'),
                         TextEntry::make('version')->label('Version'),
                         TextEntry::make('submission_date')->label('Date de Soumission')->dateTime(),
@@ -226,12 +222,9 @@ class ViewReport extends \Filament\Resources\Pages\ViewRecord
                             ->label('Vérifications')
                             ->schema([
                                 TextEntry::make('criterion.label')->label('Critère'),
-                                BadgeEntry::make('validation_status')->label('Statut')
-                                    ->colors([
-                                        'success' => ConformityStatusEnum::CONFORME->value,
-                                        'danger' => ConformityStatusEnum::NON_CONFORME->value,
-                                        'info' => ConformityStatusEnum::NON_APPLICABLE->value,
-                                    ]),
+                                Badge::make('validation_status')
+                                    ->label('Statut')
+                                    ->color(fn ($state): string => $state->getColor()),
                                 TextEntry::make('comment')->label('Commentaire'),
                                 TextEntry::make('verification_date')->label('Date')->dateTime(),
                                 TextEntry::make('verifiedBy.email')->label('Vérifié par'),
@@ -247,13 +240,9 @@ class ViewReport extends \Filament\Resources\Pages\ViewRecord
                             ->label('Votes')
                             ->schema([
                                 TextEntry::make('teacher.full_name')->label('Votant'),
-                                BadgeEntry::make('voteDecision.name')->label('Décision')
-                                    ->colors([
-                                        'success' => VoteDecisionEnum::APPROVED->value,
-                                        'danger' => VoteDecisionEnum::REJECTED->value,
-                                        'warning' => VoteDecisionEnum::APPROVED_WITH_RESERVATIONS->value,
-                                        'info' => VoteDecisionEnum::ABSTAIN->value,
-                                    ]),
+                                Badge::make('voteDecision.name')
+                                    ->label('Décision')
+                                    ->color(fn ($state): string => VoteDecisionEnum::from($state)?->getColor() ?? 'gray'),
                                 TextEntry::make('comment')->label('Commentaire'),
                                 TextEntry::make('vote_date')->label('Date Vote')->dateTime(),
                                 TextEntry::make('vote_round')->label('Tour'),

@@ -15,15 +15,19 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password; // Assurez-vous que ce service existe
+use Illuminate\Validation\Rules\Password;
 
-class MyProfile extends Page
+class MyProfile extends Page implements HasForms
 {
+    use InteractsWithForms;
+
     protected static ?string $navigationIcon = 'heroicon-o-user';
 
     protected static string $view = 'filament.app-panel.pages.my-profile';
@@ -32,13 +36,20 @@ class MyProfile extends Page
 
     public ?array $data = [];
 
-    public User $user;
+    public ?User $user;
 
     public ?\Illuminate\Database\Eloquent\Model $profile = null;
 
     public function mount(): void
     {
-        $this->user = Auth::user();
+        $user = Auth::user();
+
+        if (!$user) {
+            // Redirect or handle unauthenticated user
+            abort(403, 'User not authenticated.');
+        }
+
+        $this->user = $user;
         $this->profile = $this->user->student ?? $this->user->teacher ?? $this->user->administrativeStaff;
 
         $profileData = [];
@@ -46,12 +57,49 @@ class MyProfile extends Page
             $profileData = $this->profile->toArray();
         }
 
-        $this->form->fill(array_merge($this->user->toArray(), $profileData));
+        $this->data = array_merge($this->user->toArray(), $profileData);
+
+        // Load specific profile data based on role
+        if ($this->isStudent() && $this->user->student) {
+            $this->data = array_merge($this->data, $this->user->student->toArray());
+        } elseif ($this->isTeacher() && $this->user->teacher) {
+            $this->data = array_merge($this->data, $this->user->teacher->toArray());
+        } elseif ($this->isAdministrativeStaff() && $this->user->administrativeStaff) {
+            $this->data = array_merge($this->data, $this->user->administrativeStaff->toArray());
+        }
+    }
+
+    public function getUser(): ?\Illuminate\Contracts\Auth\Authenticatable
+    {
+        return Auth::user();
+    }
+
+    public function isStudent(): bool
+    {
+        $user = $this->getUser();
+        return $user && !is_null($user->student);
+    }
+
+    public function isTeacher(): bool
+    {
+        $user = $this->getUser();
+        return $user && !is_null($user->teacher);
+    }
+
+    public function isAdministrativeStaff(): bool
+    {
+        $user = $this->getUser();
+        return $user && !is_null($user->administrativeStaff);
     }
 
     protected function getFormSchema(): array
     {
-        $user = Auth::user();
+        $user = $this->getUser();
+
+        if (!$user) {
+            return [];
+        }
+
         $profileType = null;
         if ($user->student) {
             $profileType = 'student';
@@ -73,7 +121,8 @@ class MyProfile extends Page
                         ->label('Adresse Email (Login)')
                         ->email()
                         ->required()
-                        ->unique('users', 'email', ignoreRecord: $user)
+                        ->unique('users', 'email')
+                        ->rule(fn () => $user instanceof User ? 'unique:users,email,' . $user->id : null)
                         ->maxLength(255),
                     FileUpload::make('profile_photo_path')
                         ->label('Photo de profil')
@@ -90,7 +139,7 @@ class MyProfile extends Page
                     TextInput::make('current_password')
                         ->label('Mot de passe actuel')
                         ->password()
-                        ->required()
+                        ->requiredWith('password')
                         ->currentPassword()
                         ->autocomplete('current-password'),
                     TextInput::make('password')
@@ -102,13 +151,13 @@ class MyProfile extends Page
                     TextInput::make('password_confirmation')
                         ->label('Confirmer le mot de passe')
                         ->password()
-                        ->required()
+                        ->requiredWith('password')
                         ->same('password')
                         ->autocomplete('new-password'),
                 ])->columns(2),
         ];
 
-        if ($profileType) {
+        if ($profileType && $this->profile) {
             $profileSchema = [
                 Section::make('Informations Personnelles')
                     ->description('Mettez à jour vos informations personnelles.')
@@ -193,13 +242,13 @@ class MyProfile extends Page
                     TextInput::make('professional_email')
                         ->label('Email Professionnel')
                         ->email()
-                        ->unique(
-                            $profileType === 'teacher' ? Teacher::class : AdministrativeStaff::class,
-                            'professional_email',
-                            ignoreRecord: $this->profile
-                        )
                         ->maxLength(255)
-                        ->nullable(),
+                        ->nullable()
+                        ->unique(
+                            table: $profileType === 'teacher' ? Teacher::class : AdministrativeStaff::class,
+                            column: 'professional_email'
+                        )
+                        ->rule(fn () => $this->profile ? 'unique:' . ($profileType === 'teacher' ? 'teachers' : 'administrative_staff') . ',professional_email,' . $this->profile->id : null),
                 ];
                 if ($profileType === 'administrative_staff') {
                     $professionalFields[] = DatePicker::make('service_assignment_date')
@@ -228,10 +277,14 @@ class MyProfile extends Page
             ->statePath('data');
     }
 
-    public function save(UserManagementService $userManagementService): void
+    public function save(): void
     {
         try {
             $data = $this->form->getState();
+
+            if(!$this->user) {
+                return;
+            }
 
             // Update User model
             $this->user->name = $data['name'];
@@ -241,22 +294,20 @@ class MyProfile extends Page
                 $this->user->password = Hash::make($data['password']);
             }
 
-            if (isset($data['profile_photo_path'])) {
-                $this->user->updateProfilePhoto($data['profile_photo_path']);
-            } else {
-                // Handle case where photo is removed
-                if ($this->user->profile_photo_path && ! isset($data['profile_photo_path'])) {
-                    $this->user->deleteProfilePhoto();
-                }
-            }
-
             $this->user->save();
 
             // Update associated profile model (Student, Teacher, AdministrativeStaff)
             if ($this->profile) {
-                $profileData = array_intersect_key($data, $this->profile->getFillable());
+                $profileData = array_intersect_key($data, array_flip($this->profile->getFillable()));
                 $this->profile->fill($profileData);
                 $this->profile->save();
+            }
+
+            // Handle profile photo upload
+            if (isset($data['profile_photo_path'])) {
+                $this->user->updateProfilePhoto($data['profile_photo_path']);
+            } elseif ($this->user->profile_photo_path) {
+                $this->user->deleteProfilePhoto();
             }
 
             Notification::make()

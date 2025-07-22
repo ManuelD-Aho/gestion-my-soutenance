@@ -100,8 +100,21 @@ class ReportFlowService
                     throw new AuthorizationException("L'utilisateur n'est pas autorisé à effectuer cette transition de statut.");
                 }
 
-                if (! $this->isValidTransition($oldStatus, $newStatus)) {
-                    throw new \InvalidArgumentException("Transition de statut invalide de {$oldStatus->value} à {$newStatus->value}");
+                $this->transitions = [
+                    'DRAFT' => [ReportStatusEnum::SUBMITTED],
+                    'SUBMITTED' => [ReportStatusEnum::IN_CONFORMITY_CHECK],
+                    'IN_CONFORMITY_CHECK' => [ReportStatusEnum::NEEDS_CORRECTION, ReportStatusEnum::IN_COMMISSION_REVIEW],
+                    'NEEDS_CORRECTION' => [ReportStatusEnum::SUBMITTED],
+                    'IN_COMMISSION_REVIEW' => [ReportStatusEnum::IN_VOTE, ReportStatusEnum::REJECTED_BY_COMMISSION],
+                    'IN_VOTE' => [ReportStatusEnum::ADMITTED, ReportStatusEnum::RETAKE, ReportStatusEnum::FAILED],
+                    'REJECTED_BY_COMMISSION' => [ReportStatusEnum::DRAFT],
+                    'ADMITTED' => [],
+                    'RETAKE' => [ReportStatusEnum::DRAFT],
+                    'FAILED' => [],
+                ];
+
+                if (! in_array($newStatus, $this->transitions[$report->status->value] ?? [], true)) {
+                    throw new StateConflictException("Impossible de changer le statut du rapport de {$report->status->value} à {$newStatus->value}.");
                 }
 
                 if (($newStatus === ReportStatusEnum::NEEDS_CORRECTION || $newStatus === ReportStatusEnum::REJECTED) && (empty($reason))) {
@@ -134,17 +147,17 @@ class ReportFlowService
     private function isValidTransition(ReportStatusEnum $oldStatus, ReportStatusEnum $newStatus): bool
     {
         $transitions = [
-            ReportStatusEnum::DRAFT => [ReportStatusEnum::SUBMITTED],
-            ReportStatusEnum::SUBMITTED => [ReportStatusEnum::IN_CONFORMITY_CHECK, ReportStatusEnum::NEEDS_CORRECTION],
-            ReportStatusEnum::NEEDS_CORRECTION => [ReportStatusEnum::SUBMITTED, ReportStatusEnum::ARCHIVED],
-            ReportStatusEnum::IN_CONFORMITY_CHECK => [ReportStatusEnum::IN_COMMISSION_REVIEW, ReportStatusEnum::NEEDS_CORRECTION],
-            ReportStatusEnum::IN_COMMISSION_REVIEW => [ReportStatusEnum::VALIDATED, ReportStatusEnum::REJECTED, ReportStatusEnum::NEEDS_CORRECTION],
-            ReportStatusEnum::VALIDATED => [ReportStatusEnum::ARCHIVED],
-            ReportStatusEnum::REJECTED => [ReportStatusEnum::ARCHIVED],
-            ReportStatusEnum::ARCHIVED => [], // Aucun état ne peut transiter depuis Archivé
+            ReportStatusEnum::DRAFT->value => [ReportStatusEnum::SUBMITTED],
+            ReportStatusEnum::SUBMITTED->value => [ReportStatusEnum::IN_CONFORMITY_CHECK, ReportStatusEnum::NEEDS_CORRECTION],
+            ReportStatusEnum::NEEDS_CORRECTION->value => [ReportStatusEnum::SUBMITTED, ReportStatusEnum::ARCHIVED],
+            ReportStatusEnum::IN_CONFORMITY_CHECK->value => [ReportStatusEnum::IN_COMMISSION_REVIEW, ReportStatusEnum::NEEDS_CORRECTION],
+            ReportStatusEnum::IN_COMMISSION_REVIEW->value => [ReportStatusEnum::VALIDATED, ReportStatusEnum::REJECTED, ReportStatusEnum::NEEDS_CORRECTION],
+            ReportStatusEnum::VALIDATED->value => [ReportStatusEnum::ARCHIVED],
+            ReportStatusEnum::REJECTED->value => [ReportStatusEnum::ARCHIVED],
+            ReportStatusEnum::ARCHIVED->value => [], // Aucun état ne peut transiter depuis Archivé
         ];
 
-        return in_array($newStatus, $transitions[$oldStatus] ?? [], true);
+        return in_array($newStatus, $transitions[$oldStatus->value] ?? [], true);
     }
 
     private function validateReportCompleteness(Report $report, array $contentData): void

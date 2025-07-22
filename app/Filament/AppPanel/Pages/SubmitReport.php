@@ -20,10 +20,12 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
+use Filament\Pages\Page; // Assurez-vous que ce middleware est bien défini
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB; // Assurez-vous que ce middleware est bien défini
+use Illuminate\Support\Facades\DB;
 
 class SubmitReport extends Page
 {
@@ -147,7 +149,7 @@ class SubmitReport extends Page
             Section::make('Contenu du Rapport (Sections)')
                 ->description('Rédigez le contenu de votre rapport section par section. Vous pouvez ajouter, réordonner ou supprimer des sections.')
                 ->schema([
-                        Repeater::make('sections')
+                    Repeater::make('sections')
                         ->label('Sections du Rapport')
                         ->schema([
                             TextInput::make('title')
@@ -156,7 +158,12 @@ class SubmitReport extends Page
                                 ->maxLength(255),
                             RichEditor::make('content')
                                 ->label('Contenu de la Section')
-                                ->nullable(),
+                                ->nullable()
+                                ->maxLength(65535)
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function (Get $get, Set $set, ?string $old, ?string $state) {
+                                    $this->updateWordCount($get, $set);
+                                }),
                             TextInput::make('order')
                                 ->label('Ordre')
                                 ->numeric()
@@ -168,7 +175,7 @@ class SubmitReport extends Page
                         ->defaultItems(0)
                         ->reorderableWithButtons()
                         ->disabled(fn () => $this->report && $this->report->status === ReportStatusEnum::SUBMITTED),
-                    ]),
+                ]),
         ];
     }
 
@@ -191,22 +198,18 @@ class SubmitReport extends Page
             return;
         }
 
-        $activeAcademicYear = AcademicYear::where('is_active', true)->first();
-        if (! $activeAcademicYear) {
-            Notification::make()->title('Erreur')->body('Année académique active non configurée.')->danger()->send();
-
+        // Vérification de l'éligibilité via le service
+        $penaltyService = app(\App\Services\PenaltyService::class);
+        if (! $penaltyService->isStudentEligible($user)) {
+            Notification::make()->title('Erreur')
+                ->body("Vous n'êtes pas éligible à la soumission du rapport (profil étudiant non lié ou pénalités en attente). Veuillez contacter l'administration.")
+                ->danger()->send();
             return;
         }
 
-        // Check eligibility via middleware
-        $request = request();
-        $middleware = app(EnsureStudentIsEligible::class);
-        $response = $middleware->handle($request, function ($req) {
-            return null;
-        });
-        if ($response) {
-            // Middleware redirected, so eligibility check failed.
-            // The middleware itself should have sent a notification.
+        $activeAcademicYear = AcademicYear::where('is_active', true)->first();
+        if (! $activeAcademicYear) {
+            Notification::make()->title('Erreur')->body('Année académique active non configurée.')->danger()->send();
             return;
         }
 
@@ -319,13 +322,12 @@ class SubmitReport extends Page
             return;
         }
 
-        // Check eligibility via middleware
-        $request = request();
-        $middleware = app(EnsureStudentIsEligible::class);
-        $response = $middleware->handle($request, function ($req) {
-            return null;
-        });
-        if ($response) {
+        // Vérification de l'éligibilité via le service
+        $penaltyService = app(\App\Services\PenaltyService::class);
+        if (! $penaltyService->isStudentEligible($user)) {
+            Notification::make()->title('Erreur')
+                ->body("Vous n'êtes pas éligible à la soumission du rapport (profil étudiant non lié ou pénalités en attente). Veuillez contacter l'administration.")
+                ->danger()->send();
             return;
         }
 
@@ -399,5 +401,16 @@ class SubmitReport extends Page
         }
 
         return $actions;
+    }
+
+    protected function updateWordCount(Get $get, Set $set): void
+    {
+        $content = $get('content');
+        if ($content) {
+            $wordCount = str_word_count($content);
+            $set('word_count', $wordCount);
+        } else {
+            $set('word_count', 0);
+        }
     }
 }

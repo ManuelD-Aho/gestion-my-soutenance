@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\AppPanel\Resources\CommissionSessionResource\Pages;
 
 use App\Enums\CommissionSessionStatusEnum;
+use App\Enums\ReportStatusEnum;
 use App\Enums\VoteDecisionEnum;
 use App\Filament\AppPanel\Resources\CommissionSessionResource;
 use App\Models\Report;
@@ -13,6 +14,7 @@ use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
 class ViewCommissionSession extends \Filament\Resources\Pages\ViewRecord

@@ -6,7 +6,14 @@ namespace App\Filament\AppPanel\Widgets;
 
 use App\Enums\CommissionSessionStatusEnum;
 use App\Enums\VoteDecisionEnum;
+use App\Filament\AppPanel\Resources\CommissionSessionResource;
 use App\Models\CommissionSession;
+use App\Models\Report;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -76,10 +83,10 @@ class CommissionVoteOverview extends Widget
                     ]),
             ])
             ->actions([
-                    Action::make('view_session')
+                Action::make('view_session')
                     ->label('Voir Session')
                     ->url(fn (CommissionSession $record): string => CommissionSessionResource::getUrl('view', ['record' => $record])),
-                    Action::make('record_missing_votes')
+                Action::make('record_missing_votes')
                     ->label('Voter les Rapports Restants')
                     ->visible(fn (CommissionSession $record) => $record->status === CommissionSessionStatusEnum::IN_PROGRESS)
                     ->form(function (CommissionSession $record) use ($teacherId) {
@@ -116,8 +123,14 @@ class CommissionVoteOverview extends Widget
 
                         return $schema;
                     })
-                    ->action(function (array $data, CommissionSession $record, \App\Services\CommissionFlowService $commissionFlowService) use ($user) {
+                    ->action(function (array $data, CommissionSession $record, \App\Services\CommissionFlowService $commissionFlowService) {
                         try {
+                            /** @var \App\Models\User $user */
+                            $user = Auth::user();
+                            if (!$user) {
+                                throw new \Exception('Utilisateur non authentifié.');
+                            }
+
                             $successCount = 0;
                             foreach ($data['votes'] as $reportId => $voteData) {
                                 $report = Report::find($reportId);
@@ -131,6 +144,6 @@ class CommissionVoteOverview extends Widget
                             Notification::make()->title('Erreur lors de l\'enregistrement des votes')->body($e->getMessage())->danger()->send();
                         }
                     }),
-                ]);
+            ]);
     }
 }

@@ -14,4 +14,10 @@ enum ReportStatusEnum: string
     case VALIDATED = 'Validé';
     case REJECTED = 'Refusé';
     case ARCHIVED = 'Archivé';
+    // Ajout des constantes manquantes
+    case IN_VOTE = 'IN_VOTE';
+    case REJECTED_BY_COMMISSION = 'REJECTED_BY_COMMISSION';
+    case ADMITTED = 'ADMITTED';
+    case RETAKE = 'RETAKE';
+    case FAILED = 'FAILED';
 }

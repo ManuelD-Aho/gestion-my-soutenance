@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Filament\AppPanel\Resources;
 
 use App\Enums\ConformityStatusEnum;
+use App\Enums\DocumentTypeEnum;
 use App\Enums\ReportStatusEnum;
+use App\Enums\VoteDecisionEnum;
 use App\Filament\AppPanel\Resources\ReportResource\Pages;
 use App\Models\ConformityCriterion;
 use App\Models\Report;
 use App\Models\Student;
+use App\Models\Teacher;
+use App\Models\User;
 use App\Services\ConformityCheckService;
 use App\Services\PdfGenerationService;
 use App\Services\ReportFlowService;
@@ -332,7 +336,9 @@ class ReportResource extends Resource
                     })
                     ->action(function (array $data, Report $record, ConformityCheckService $conformityCheckService) use ($user) {
                         try {
-                            $conformityCheckService->checkConformity($record, $data['criteria_results'], $user);
+                            // S'assurer que $user est bien une instance de \App\Models\User
+                            $userModel = $user instanceof User ? $user : ($user ? User::find(method_exists($user, 'getAuthIdentifier') ? $user->getAuthIdentifier() : null) : null);
+                            $conformityCheckService->checkConformity($record, $data['criteria_results'], $userModel);
                             Notification::make()->title('Vérification de conformité effectuée')->success()->send();
                         } catch (\Throwable $e) {
                             Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
@@ -351,7 +357,9 @@ class ReportResource extends Resource
                     ])
                     ->action(function (array $data, Report $record, ReportFlowService $reportFlowService) use ($user) {
                         try {
-                            $reportFlowService->updateReportStatus($record, ReportStatusEnum::NEEDS_CORRECTION, $user, $data['comments']);
+                            // S'assurer que $user est bien une instance de \App\Models\User
+                            $userModel = $user instanceof User ? $user : ($user ? User::find(method_exists($user, 'getAuthIdentifier') ? $user->getAuthIdentifier() : null) : null);
+                            $reportFlowService->updateReportStatus($record, ReportStatusEnum::NEEDS_CORRECTION, $userModel, $data['comments']);
                             Notification::make()->title('Rapport retourné pour correction')->body('L\'étudiant a été notifié des corrections requises.')->success()->send();
                         } catch (\Throwable $e) {
                             Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
@@ -372,14 +380,16 @@ class ReportResource extends Resource
                             }
 
                             Notification::make()->title('Fichier non trouvé')->body('Le PDF du rapport n\'est pas encore disponible ou a été supprimé.')->danger()->send();
+                            return null;
                         } catch (\Throwable $e) {
                             Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
+                            return null;
                         }
                     }),
             ])
             ->bulkActions([
-                    // Pas d'actions de masse par défaut
-                ]);
+                // Pas d'actions de masse par défaut
+            ]);
     }
 
     public static function getRelations(): array
