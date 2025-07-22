@@ -1,11 +1,35 @@
 <?php
 
-namespace App\Filament\AppPanel\Resources\InternshipResource\Pages;
+    namespace App\Filament\AppPanel\Resources\InternshipResource\Pages;
 
-use App\Filament\AppPanel\Resources\InternshipResource;
-use Filament\Resources\Pages\CreateRecord;
+    use App\Filament\AppPanel\Resources\InternshipResource;
+    use Filament\Resources\Pages\CreateRecord;
+    use Illuminate\Support\Facades\Auth;
+    use Filament\Notifications\Notification;
 
-class CreateInternship extends CreateRecord
-{
-    protected static string $resource = InternshipResource::class;
-}
+    class CreateInternship extends CreateRecord
+    {
+        protected static string $resource = InternshipResource::class;
+
+        protected function mutateFormDataBeforeCreate(array $data): array
+        {
+            $user = Auth::user();
+            if ($user->hasRole('Etudiant') && $user->student) {
+                $data['student_id'] = $user->student->id; // Auto-assign student if current user is student
+            }
+            return $data;
+        }
+
+        protected function getRedirectUrl(): string
+        {
+            return $this->getResource()::getUrl('index');
+        }
+
+        protected function getCreatedNotification(): ?Notification
+        {
+            return Notification::make()
+                ->title('Stage enregistré')
+                ->body('Le stage a été enregistré avec succès.')
+                ->success();
+        }
+    }
