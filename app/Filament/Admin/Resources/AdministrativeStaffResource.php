@@ -15,6 +15,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
+use Filament\Forms\Get; // Ajout de l'import Get
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action;
@@ -119,11 +120,12 @@ class AdministrativeStaffResource extends Resource
                 Toggle::make('is_active')
                     ->label('Profil Actif')
                     ->default(true)
+                    ->live() // Ajout de live() pour la réactivité
                     ->helperText('Désactiver pour archiver le profil sans le supprimer.'),
                 DatePicker::make('end_date')
                     ->label('Date de fin d\'activité')
                     ->nullable()
-                    ->visible(fn (Toggle $component) => ! $component->getState()),
+                    ->visible(fn (Get $get): bool => ! $get('is_active')), // Correction ici
             ]);
     }
 
@@ -183,8 +185,8 @@ class AdministrativeStaffResource extends Resource
                     }),
             ])
             ->bulkActions([
-                    //
-                ]);
+                //
+            ]);
     }
 
     public static function getRelations(): array

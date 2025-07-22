@@ -7,7 +7,7 @@ namespace App\Filament\AppPanel\Resources\ReportResource\Pages;
 use App\Filament\AppPanel\Resources\ReportResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Auth; // Ajout de l'import
 
 class ListReports extends ListRecords
 {

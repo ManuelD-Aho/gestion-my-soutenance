@@ -12,9 +12,10 @@ return new class extends Migration
     {
         Schema::create('students', function (Blueprint $table) {
             $table->id();
-            $table->string('student_card_number', 50)->unique()->comment('Numéro de carte étudiant (ID métier)');
+            $table->string('student_card_number', 50)->unique();
             $table->string('first_name');
             $table->string('last_name');
+            $table->string('email_contact_personnel', 255)->unique()->nullable();
             $table->date('date_of_birth')->nullable();
             $table->string('place_of_birth', 100)->nullable();
             $table->string('country_of_birth', 50)->nullable();
@@ -29,8 +30,8 @@ return new class extends Migration
             $table->string('emergency_contact_phone', 20)->nullable();
             $table->string('emergency_contact_relation', 50)->nullable();
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->boolean('is_active')->default(true)->comment('Indique si le profil étudiant est actif');
-            $table->date('end_date')->nullable()->comment('Date de fin de scolarité ou d\'archivage du profil');
+            $table->boolean('is_active')->default(true);
+            $table->date('end_date')->nullable();
             $table->timestamps();
         });
     }

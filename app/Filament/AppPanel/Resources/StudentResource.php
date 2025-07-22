@@ -46,10 +46,10 @@ class StudentResource extends Resource
         }
 
         if ($user->hasRole('Responsable Scolarite')) {
-            return parent::getEloquentQuery(); // RS peut voir tous les étudiants
+            return parent::getEloquentQuery();
         }
 
-        return parent::getEloquentQuery()->where('id', null); // No access for other roles
+        return parent::getEloquentQuery()->where('id', null);
     }
 
     public static function form(Form $form): Form
@@ -66,7 +66,7 @@ class StudentResource extends Resource
                             ->label('Numéro Carte Étudiant')
                             ->unique(ignoreRecord: true)
                             ->maxLength(50)
-                            ->disabled(! $isAdmin), // Seul l'Admin peut modifier l'ID métier
+                            ->disabled(! $isAdmin),
                         TextInput::make('first_name')
                             ->label('Prénom')
                             ->required()
@@ -80,7 +80,7 @@ class StudentResource extends Resource
                         TextInput::make('email_contact_personnel')
                             ->label('Email Personnel (pour le compte)')
                             ->email()
-                            ->unique(Student::class, 'email_contact_personnel', ignoreRecord: true)
+                            ->unique(ignoreRecord: true) // Simplification ici
                             ->required()
                             ->maxLength(255)
                             ->disabled(! $isAdmin && ! $isRS),
@@ -170,7 +170,7 @@ class StudentResource extends Resource
                             ->disabled(),
                         Toggle::make('is_active')
                             ->label('Profil Actif')
-                            ->disabled(! $isAdmin), // Seul l'Admin peut désactiver le profil métier
+                            ->disabled(! $isAdmin),
                         DatePicker::make('end_date')
                             ->label('Date de Fin d\'Activité')
                             ->nullable()
@@ -231,37 +231,34 @@ class StudentResource extends Resource
                     ->visible($isAdmin || $isRS),
             ])
             ->filters([
-                    \Filament\Tables\Filters\SelectFilter::make('is_active')
+                \Filament\Tables\Filters\SelectFilter::make('is_active')
                     ->options([
                         true => 'Actif',
                         false => 'Inactif',
                     ])
                     ->label('Statut du Profil'),
-                    \Filament\Tables\Filters\SelectFilter::make('user_status')
+                \Filament\Tables\Filters\SelectFilter::make('user_status')
                     ->options(UserAccountStatusEnum::class)
                     ->query(fn (Builder $query, array $data) => $query->whereHas('user', fn ($q) => $q->where('status', $data['value'])))
                     ->label('Statut du Compte Utilisateur'),
-                ])
+            ])
             ->actions([
-                    ViewAction::make(),
-                    EditAction::make()
+                ViewAction::make(),
+                EditAction::make()
                     ->visible(fn () => $isAdmin || $isRS),
-                    Action::make('activate_account')
+                Action::make('activate_account')
                     ->label('Activer Compte')
                     ->icon('heroicon-o-user-plus')
                     ->color('success')
-                    ->visible(fn (Student $record) => $isRS && ! $record->user) // Visible si RS et pas de compte lié
+                    ->visible(fn (Student $record) => $isRS && ! $record->user)
                     ->requiresConfirmation()
                     ->action(function (Student $record, UserManagementService $userManagementService, PenaltyService $penaltyService) {
                         try {
-                            // Vérifier l'éligibilité avant activation
                             if (! $penaltyService->checkStudentEligibility($record)) {
                                 Notification::make()->title('Activation impossible')->body('L\'étudiant a des pénalités en attente de régularisation.')->danger()->send();
 
                                 return;
                             }
-                            // Vérifier les prérequis d'inscription et stage (logique métier)
-                            // Exemple:
                             if (! $record->enrollments()->whereHas('academicYear', fn ($q) => $q->where('is_active', true))->exists()) {
                                 Notification::make()->title('Activation impossible')->body('L\'étudiant n\'est pas inscrit pour l\'année académique active.')->danger()->send();
 
@@ -279,16 +276,16 @@ class StudentResource extends Resource
                             Notification::make()->title('Erreur d\'activation')->body($e->getMessage())->danger()->send();
                         }
                     }),
-                ])
+            ])
             ->bulkActions([
-                    // Pas d'actions de masse par défaut
-                ]);
+                //
+            ]);
     }
 
     public static function getRelations(): array
     {
         return [
-            // RelationManagers pour les inscriptions, stages, pénalités, réclamations
+            //
         ];
     }
 

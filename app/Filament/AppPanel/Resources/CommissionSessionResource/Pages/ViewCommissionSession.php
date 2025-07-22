@@ -9,7 +9,9 @@ use App\Enums\ReportStatusEnum;
 use App\Enums\VoteDecisionEnum;
 use App\Filament\AppPanel\Resources\CommissionSessionResource;
 use App\Models\Report;
+use App\Models\Teacher; // Ajout de l'import Teacher
 use Filament\Actions;
+use Filament\Infolists\Components\Badge; // Ajout de l'import Badge
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
@@ -40,7 +42,7 @@ class ViewCommissionSession extends \Filament\Resources\Pages\ViewRecord
                     try {
                         app(\App\Services\CommissionFlowService::class)->startSession($record, $user);
                         \Filament\Notifications\Notification::make()->title('Session démarrée')->body('La session est maintenant en cours.')->success()->send();
-                        $this->refreshFormData(['status']); // Refresh status
+                        $this->refreshFormData(['status']);
                     } catch (\Throwable $e) {
                         \Filament\Notifications\Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
                     }
@@ -55,7 +57,7 @@ class ViewCommissionSession extends \Filament\Resources\Pages\ViewRecord
                     try {
                         app(\App\Services\CommissionFlowService::class)->closeSession($record, $user);
                         \Filament\Notifications\Notification::make()->title('Session clôturée')->body('La session a été clôturée et les décisions finalisées.')->success()->send();
-                        $this->refreshFormData(['status']); // Refresh status
+                        $this->refreshFormData(['status']);
                     } catch (\Throwable $e) {
                         \Filament\Notifications\Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
                     }
@@ -130,15 +132,11 @@ class ViewCommissionSession extends \Filament\Resources\Pages\ViewRecord
                                     ->query(fn (Builder $query, Report $report) => $query->where('report_id', $report->id)->where('commission_session_id', $this->getRecord()->id))
                                     ->schema([
                                         TextEntry::make('teacher.full_name')->label('Votant'),
-                                        TextEntry::make('voteDecision.name')->label('Décision')
-                                            ->badge()
-                                            ->colors([
-                                                'success' => VoteDecisionEnum::APPROVED->value,
-                                                'danger' => VoteDecisionEnum::REJECTED->value,
-                                                'warning' => VoteDecisionEnum::APPROVED_WITH_RESERVATIONS->value,
-                                                'info' => VoteDecisionEnum::ABSTAIN->value,
-                                            ]),
+                                        Badge::make('voteDecision.name')->label('Décision')
+                                            ->colors(fn (string $state): string => VoteDecisionEnum::from($state)?->getColor() ?? 'gray'), // Utilisation de getColor()
                                         TextEntry::make('comment')->label('Commentaire'),
+                                        TextEntry::make('vote_date')->label('Date Vote')->dateTime(),
+                                        TextEntry::make('vote_round')->label('Tour'),
                                     ])->columns(2),
                             ])->columns(2),
                     ]),

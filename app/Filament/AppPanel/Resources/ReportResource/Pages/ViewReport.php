@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Filament\AppPanel\Resources\ReportResource\Pages;
 
 use App\Enums\ConformityStatusEnum;
+use App\Enums\DocumentTypeEnum;
 use App\Enums\ReportStatusEnum;
 use App\Enums\VoteDecisionEnum;
 use App\Filament\AppPanel\Resources\ReportResource;
 use App\Models\ConformityCriterion;
 use App\Models\Report;
+use App\Models\Student; // Ajout de l'import Student
+use App\Models\Teacher; // Ajout de l'import Teacher
 use App\Services\ConformityCheckService;
+use App\Services\PdfGenerationService;
 use App\Services\ReportFlowService;
 use Filament\Actions;
 use Filament\Forms\Components\Select;
@@ -49,7 +53,6 @@ class ViewReport extends ViewRecord
                 ->requiresConfirmation()
                 ->action(function () use ($record) {
                     try {
-                        // Re-fetch data from form to ensure latest content is used
                         $data = $this->form->getState();
                         $sectionsData = $data['sections'];
                         app(ReportFlowService::class)->submitReport($record, $sectionsData, $record->version);
@@ -138,14 +141,13 @@ class ViewReport extends ViewRecord
                 ])
                 ->action(function (array $data) use ($record, $user) {
                     try {
-                        // Find the commission session this report is currently in
                         $commissionSession = $record->commissionSessions()->where('status', \App\Enums\CommissionSessionStatusEnum::IN_PROGRESS)->first();
                         if (! $commissionSession) {
                             throw new \Exception('Le rapport n\'est pas dans une session de commission active.');
                         }
                         app(\App\Services\CommissionFlowService::class)->recordVote($commissionSession, $record, $user, VoteDecisionEnum::from($data['decision']), $data['comment']);
                         Notification::make()->title('Vote enregistré')->body('Votre vote a été enregistré avec succès.')->success()->send();
-                        $this->refreshFormData(['votes']); // Refresh votes section
+                        $this->refreshFormData(['votes']);
                     } catch (\Throwable $e) {
                         Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
                     }
@@ -159,14 +161,16 @@ class ViewReport extends ViewRecord
                 ->color('secondary')
                 ->action(function () use ($record) {
                     try {
-                        $document = $record->documents()->whereHas('documentType', fn ($q) => $q->where('name', \App\Enums\DocumentTypeEnum::RAPPORT->value))->first();
+                        $document = $record->documents()->whereHas('documentType', fn ($q) => $q->where('name', DocumentTypeEnum::RAPPORT->value))->first();
                         if ($document && Storage::exists($document->file_path)) {
                             return Storage::download($document->file_path);
                         }
-                        Notification::make()->title('Fichier non trouvé')->body('Le PDF du rapport n\'est pas encore disponible ou a été supprimé.')->danger()->send();
+                        Notification::make()->title('Fichier non trouvé')->body('Le PDF du rapport n\'a pas encore été généré ou n\'existe plus.')->danger()->send();
+
                         return null;
                     } catch (\Throwable $e) {
                         Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
+
                         return null;
                     }
                 });
@@ -193,10 +197,18 @@ class ViewReport extends ViewRecord
                         TextEntry::make('student.full_name')->label('Étudiant'),
                         TextEntry::make('academicYear.label')->label('Année Académique'),
                         TextEntry::make('reportTemplate.name')->label('Modèle de Rapport'),
-                        Badge::make('status')
+                        \Filament\Infolists\Components\BadgeEntry::make('status')
                             ->label('Statut du Rapport')
-                            ->color(fn ($state): string => $state->getColor())
-                            ->icon(fn ($state): string => $state->getIcon()),
+                            ->colors([
+                                'gray' => ReportStatusEnum::DRAFT->value,
+                                'info' => ReportStatusEnum::SUBMITTED->value,
+                                'warning' => ReportStatusEnum::NEEDS_CORRECTION->value,
+                                'primary' => ReportStatusEnum::IN_CONFORMITY_CHECK->value,
+                                'secondary' => ReportStatusEnum::IN_COMMISSION_REVIEW->value,
+                                'success' => ReportStatusEnum::VALIDATED->value,
+                                'danger' => ReportStatusEnum::REJECTED->value,
+                                'dark' => ReportStatusEnum::ARCHIVED->value,
+                            ]),
                         TextEntry::make('page_count')->label('Nombre de Pages'),
                         TextEntry::make('version')->label('Version'),
                         TextEntry::make('submission_date')->label('Date de Soumission')->dateTime(),
@@ -222,9 +234,13 @@ class ViewReport extends ViewRecord
                             ->label('Vérifications')
                             ->schema([
                                 TextEntry::make('criterion.label')->label('Critère'),
-                                Badge::make('validation_status')
+                                \Filament\Infolists\Components\BadgeEntry::make('validation_status')
                                     ->label('Statut')
-                                    ->color(fn ($state): string => $state->getColor()),
+                                    ->colors([
+                                        'success' => ConformityStatusEnum::CONFORME->value,
+                                        'danger' => ConformityStatusEnum::NON_CONFORME->value,
+                                        'info' => ConformityStatusEnum::NON_APPLICABLE->value,
+                                    ]),
                                 TextEntry::make('comment')->label('Commentaire'),
                                 TextEntry::make('verification_date')->label('Date')->dateTime(),
                                 TextEntry::make('verifiedBy.email')->label('Vérifié par'),
@@ -240,9 +256,9 @@ class ViewReport extends ViewRecord
                             ->label('Votes')
                             ->schema([
                                 TextEntry::make('teacher.full_name')->label('Votant'),
-                                Badge::make('voteDecision.name')
+                                \Filament\Infolists\Components\BadgeEntry::make('voteDecision.name')
                                     ->label('Décision')
-                                    ->color(fn ($state): string => VoteDecisionEnum::from($state)?->getColor() ?? 'gray'),
+                                    ->colors(fn (string $state): string => VoteDecisionEnum::from($state)?->getColor() ?? 'gray'),
                                 TextEntry::make('comment')->label('Commentaire'),
                                 TextEntry::make('vote_date')->label('Date Vote')->dateTime(),
                                 TextEntry::make('vote_round')->label('Tour'),

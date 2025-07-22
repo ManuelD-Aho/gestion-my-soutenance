@@ -7,9 +7,9 @@ namespace App\Filament\AppPanel\Resources\ReportResource\Pages;
 use App\Enums\ReportStatusEnum;
 use App\Filament\AppPanel\Resources\ReportResource;
 use App\Models\AcademicYear;
-use Filament\Notifications\Notification;
+use Filament\Notifications\Notification; // Ajout de l'import
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Auth; // Ajout de l'import
 
 class CreateReport extends CreateRecord
 {
@@ -22,18 +22,18 @@ class CreateReport extends CreateRecord
 
         if (! $student) {
             Notification::make()->title('Erreur')->body('Profil étudiant non trouvé.')->danger()->send();
-            $this->halt(); // Stop creation process
+            $this->halt();
         }
 
         $activeAcademicYear = AcademicYear::where('is_active', true)->first();
         if (! $activeAcademicYear) {
             Notification::make()->title('Erreur')->body('Année académique active non configurée.')->danger()->send();
-            $this->halt(); // Stop creation process
+            $this->halt();
         }
 
         $data['student_id'] = $student->id;
         $data['academic_year_id'] = $activeAcademicYear->id;
-        $data['status'] = ReportStatusEnum::DRAFT; // New reports start as draft
+        $data['status'] = ReportStatusEnum::DRAFT;
         $data['last_modified_date'] = now();
 
         return $data;

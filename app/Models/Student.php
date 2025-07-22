@@ -22,7 +22,7 @@ class Student extends Model
     protected $keyType = 'int';
 
     protected $fillable = [
-        'student_card_number', // ID métier généré
+        'student_card_number',
         'first_name',
         'last_name',
         'email_contact_personnel',
@@ -40,8 +40,8 @@ class Student extends Model
         'emergency_contact_name',
         'emergency_contact_phone',
         'emergency_contact_relation',
-        'is_active', // Ajout pour gestion de l'historique
-        'end_date', // Date de fin de scolarité/archivage
+        'is_active',
+        'end_date',
     ];
 
     protected $casts = [
@@ -84,5 +84,11 @@ class Student extends Model
     public function auditLogs(): MorphMany
     {
         return $this->morphMany(AuditLog::class, 'auditable');
+    }
+
+    // Accesseur pour le nom complet
+    public function getFullNameAttribute(): string
+    {
+        return "{$this->first_name} {$this->last_name}";
     }
 }

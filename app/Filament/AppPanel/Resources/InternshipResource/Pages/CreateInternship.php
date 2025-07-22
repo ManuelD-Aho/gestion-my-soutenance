@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\AppPanel\Resources\InternshipResource\Pages;
 
 use App\Filament\AppPanel\Resources\InternshipResource;
-use Filament\Notifications\Notification;
+use Filament\Notifications\Notification; // Ajout de l'import
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Auth; // Ajout de l'import
 
 class CreateInternship extends CreateRecord
 {
@@ -17,7 +17,7 @@ class CreateInternship extends CreateRecord
     {
         $user = Auth::user();
         if ($user->hasRole('Etudiant') && $user->student) {
-            $data['student_id'] = $user->student->id; // Auto-assign student if current user is student
+            $data['student_id'] = $user->student->id;
         }
 
         return $data;

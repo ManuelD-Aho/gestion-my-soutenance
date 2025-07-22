@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources;
 
+use App\Enums\ConformityStatusEnum;
+use App\Enums\DocumentTypeEnum;
 use App\Enums\ReportStatusEnum;
 use App\Filament\Admin\Resources\ReportResource\Pages;
+use App\Models\ConformityCriterion;
 use App\Models\Report;
 use App\Services\ConformityCheckService;
 use App\Services\ReportFlowService;
@@ -253,8 +256,8 @@ class ReportResource extends Resource
                     }),
             ])
             ->bulkActions([
-                    //
-                ]);
+                //
+            ]);
     }
 
     public static function getRelations(): array

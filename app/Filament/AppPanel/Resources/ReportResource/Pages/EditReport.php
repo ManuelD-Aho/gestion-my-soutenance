@@ -6,9 +6,10 @@ namespace App\Filament\AppPanel\Resources\ReportResource\Pages;
 
 use App\Enums\ReportStatusEnum;
 use App\Filament\AppPanel\Resources\ReportResource;
-use Filament\Notifications\Notification;
+use Filament\Actions;
+use Filament\Notifications\Notification; // Ajout de l'import
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Auth; // Ajout de l'import
 
 class EditReport extends EditRecord
 {
@@ -23,7 +24,7 @@ class EditReport extends EditRecord
 
         // Only student can edit if draft or needs correction
         if ($user->hasRole('Etudiant') && $user->student && $record->student_id === $user->student->id && ($record->status === ReportStatusEnum::DRAFT || $record->status === ReportStatusEnum::NEEDS_CORRECTION)) {
-            $actions[] = Actions\DeleteAction::make(); // Student can delete their own draft
+            $actions[] = Actions\DeleteAction::make();
         }
 
         // Admin can always delete

@@ -100,21 +100,8 @@ class ReportFlowService
                     throw new AuthorizationException("L'utilisateur n'est pas autorisé à effectuer cette transition de statut.");
                 }
 
-                $this->transitions = [
-                    'DRAFT' => [ReportStatusEnum::SUBMITTED],
-                    'SUBMITTED' => [ReportStatusEnum::IN_CONFORMITY_CHECK],
-                    'IN_CONFORMITY_CHECK' => [ReportStatusEnum::NEEDS_CORRECTION, ReportStatusEnum::IN_COMMISSION_REVIEW],
-                    'NEEDS_CORRECTION' => [ReportStatusEnum::SUBMITTED],
-                    'IN_COMMISSION_REVIEW' => [ReportStatusEnum::IN_VOTE, ReportStatusEnum::REJECTED_BY_COMMISSION],
-                    'IN_VOTE' => [ReportStatusEnum::ADMITTED, ReportStatusEnum::RETAKE, ReportStatusEnum::FAILED],
-                    'REJECTED_BY_COMMISSION' => [ReportStatusEnum::DRAFT],
-                    'ADMITTED' => [],
-                    'RETAKE' => [ReportStatusEnum::DRAFT],
-                    'FAILED' => [],
-                ];
-
-                if (! in_array($newStatus, $this->transitions[$report->status->value] ?? [], true)) {
-                    throw new StateConflictException("Impossible de changer le statut du rapport de {$report->status->value} à {$newStatus->value}.");
+                if (! $this->isValidTransition($oldStatus, $newStatus)) {
+                    throw new \InvalidArgumentException("Transition de statut invalide de {$oldStatus->value} à {$newStatus->value}");
                 }
 
                 if (($newStatus === ReportStatusEnum::NEEDS_CORRECTION || $newStatus === ReportStatusEnum::REJECTED) && (empty($reason))) {
@@ -154,15 +141,32 @@ class ReportFlowService
             ReportStatusEnum::IN_COMMISSION_REVIEW->value => [ReportStatusEnum::VALIDATED, ReportStatusEnum::REJECTED, ReportStatusEnum::NEEDS_CORRECTION],
             ReportStatusEnum::VALIDATED->value => [ReportStatusEnum::ARCHIVED],
             ReportStatusEnum::REJECTED->value => [ReportStatusEnum::ARCHIVED],
-            ReportStatusEnum::ARCHIVED->value => [], // Aucun état ne peut transiter depuis Archivé
+            ReportStatusEnum::ARCHIVED->value => [],
         ];
 
         return in_array($newStatus, $transitions[$oldStatus->value] ?? [], true);
     }
 
+    public function returnForCorrection(Report $report, string $comments, User $agent): void
+    {
+        if (empty($comments)) {
+            throw new \InvalidArgumentException("Les commentaires sont obligatoires pour retourner un rapport en correction.");
+        }
+
+        $this->updateReportStatus($report, ReportStatusEnum::NEEDS_CORRECTION, $agent, $comments);
+
+        $this->notificationService->sendEmail(
+            \App\Mail\ReportNeedsCorrectionMail::class,
+            $report->student->user,
+            ['report' => $report, 'comments' => $comments]
+        );
+
+        $this->auditService->logAction("REPORT_RETURNED_FOR_CORRECTION", $report, ['report_id' => $report->report_id, 'comments' => $comments, 'agent_id' => $agent->id]);
+    }
+
     private function validateReportCompleteness(Report $report, array $contentData): void
     {
-        $template = ReportTemplate::find($report->report_template_id); // Assumer une relation ou un champ
+        $template = ReportTemplate::find($report->report_template_id);
         if ($template) {
             $mandatorySections = $template->sections()->where('is_mandatory', true)->pluck('title')->toArray();
             $submittedSectionTitles = collect($contentData)->pluck('title')->toArray();

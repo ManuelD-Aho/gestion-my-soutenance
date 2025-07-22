@@ -22,7 +22,7 @@ class Teacher extends Model
     protected $keyType = 'int';
 
     protected $fillable = [
-        'teacher_id', // ID métier généré
+        'teacher_id',
         'first_name',
         'last_name',
         'professional_phone',
@@ -38,8 +38,8 @@ class Teacher extends Model
         'postal_code',
         'personal_phone',
         'personal_secondary_email',
-        'is_active', // Ajout pour gestion de l'historique
-        'end_date', // Date de fin d'activité pour l'archivage
+        'is_active',
+        'end_date',
     ];
 
     protected $casts = [
@@ -82,5 +82,11 @@ class Teacher extends Model
     public function commissionSessions(): BelongsToMany
     {
         return $this->belongsToMany(CommissionSession::class, 'commission_session_teacher');
+    }
+
+    // Accesseur pour le nom complet
+    public function getFullNameAttribute(): string
+    {
+        return "{$this->first_name} {$this->last_name}";
     }
 }

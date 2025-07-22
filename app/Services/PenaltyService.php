@@ -42,7 +42,7 @@ class PenaltyService
 
         try {
             return DB::transaction(function () use ($student, $type, $reason, $amount, $adminStaffUser) {
-                $activeAcademicYear = AcademicYear::where('is_active', true)->firstOrFail(); // Assumer qu'une année active existe
+                $activeAcademicYear = AcademicYear::where('is_active', true)->firstOrFail();
 
                 $penalty = Penalty::create([
                     'penalty_id' => $this->uniqueIdGeneratorService->generate('PEN', (int) date('Y')),
@@ -138,9 +138,6 @@ class PenaltyService
         return ! $student->penalties()->where('status', PenaltyStatusEnum::DUE)->exists();
     }
 
-    /**
-     * Vérifie si l'utilisateur étudiant est éligible (pas de pénalités bloquantes, profil lié, etc.)
-     */
     public function isStudentEligible(User $user): bool
     {
         if ($user && $user->hasRole('Etudiant')) {

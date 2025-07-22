@@ -13,6 +13,7 @@ use App\Enums\VoteDecisionEnum;
 use App\Exceptions\CommissionException;
 use App\Models\CommissionSession;
 use App\Models\Pv;
+use App\Models\PvApproval; // Ajout de l'import
 use App\Models\Report;
 use App\Models\User;
 use App\Models\Vote;
@@ -200,11 +201,11 @@ class CommissionFlowService
         $approvedWithReservationsCount = $voteCounts->get(VoteDecisionEnum::APPROVED_WITH_RESERVATIONS->value, 0);
         $abstainCount = $voteCounts->get(VoteDecisionEnum::ABSTAIN->value, 0);
 
-        $totalVoters = $session->teachers->count(); // Assumer que tous les enseignants de la session sont des votants
+        $totalVoters = $session->teachers->count();
         $actualVoters = $votes->unique('teacher_id')->count();
 
         if ($actualVoters < $session->required_voters_count) {
-            return null; // Quorum non atteint
+            return null;
         }
 
         if ($rejectedCount > 0) {
@@ -215,7 +216,7 @@ class CommissionFlowService
             return ReportStatusEnum::VALIDATED;
         }
 
-        return null; // Décision non finale (ex: égalité, besoin d'un nouveau tour)
+        return null;
     }
 
     public function generatePv(CommissionSession $session, User $authorUser): Pv
@@ -278,54 +279,84 @@ class CommissionFlowService
         return $content;
     }
 
-    /**
-     * @throws CommissionException
-     */
-    public function approvePv(Pv $pv, User $approverUser): void
+    public function approvePv(Pv $pv, User $approverUser, PvApprovalDecisionEnum $decision, ?string $comment = null): void
     {
-        if ($pv->status !== PvStatusEnum::PENDING_APPROVAL) {
-            throw new CommissionException('Ce PV ne peut pas être approuvé ou rejeté car il n\'est pas en attente d\'approbation.');
+        if ($pv->status !== PvStatusEnum::PENDING_APPROVAL && $pv->status !== PvStatusEnum::IN_REVISION) {
+            throw new CommissionException('Ce PV ne peut pas être approuvé ou rejeté car il n\'est pas en attente d\'approbation ou en révision.');
         }
 
-        $approval = $pv->approvals()->where('user_id', $approverUser->id)->first();
+        try {
+            DB::transaction(function () use ($pv, $approverUser, $decision, $comment) {
+                $approverTeacher = $approverUser->teacher;
+                if (! $approverTeacher || ! $pv->commissionSession->teachers->contains($approverTeacher->id)) {
+                    throw new \Illuminate\Auth\Access\AuthorizationException("L'utilisateur n'est pas un membre autorisé pour approuver ce PV.");
+                }
 
-        if ($approval) {
-            throw new CommissionException('Vous avez déjà approuvé ce PV.');
-        }
+                if (($decision === PvApprovalDecisionEnum::CHANGES_REQUESTED || $decision === PvApprovalDecisionEnum::REJECTED) && empty($comment)) {
+                    throw new \InvalidArgumentException('Un commentaire est obligatoire pour cette décision d\'approbation de PV.');
+                }
 
-        $pv->approvals()->create([
-            'user_id' => $approverUser->id,
-            'decision' => PvApprovalDecisionEnum::APPROVED,
-            'comments' => 'Approuvé automatiquement via le système.',
-        ]);
+                PvApproval::create([
+                    'pv_id' => $pv->id,
+                    'teacher_id' => $approverTeacher->id,
+                    'pv_approval_decision_id' => $decision->value,
+                    'validation_date' => now(),
+                    'comment' => $comment,
+                ]);
 
-        // Check if all members have approved
-        if ($pv->approvals()->where('decision', PvApprovalDecisionEnum::APPROVED)->count() === $pv->commissionSession->members()->count()) {
-            $pv->status = PvStatusEnum::APPROVED;
-            $pv->save();
-            $this->notificationService->processNotificationRules('PV_FINALIZED', $pv);
+                $finalPvStatus = $this->determineFinalPvStatus($pv);
+
+                if ($finalPvStatus !== PvStatusEnum::PENDING_APPROVAL && $finalPvStatus !== PvStatusEnum::IN_REVISION) {
+                    $pv->status = $finalPvStatus;
+                    $pv->save();
+
+                    if ($pv->status === PvStatusEnum::APPROVED) {
+                        $this->pdfGenerationService->generateAndRegisterDocument(
+                            'pdf.pv_final',
+                            ['pv' => $pv],
+                            'PV',
+                            $pv,
+                            $pv->author
+                        );
+                        $this->notificationService->processNotificationRules('PV_APPROVED_DIFFUSED', $pv);
+                    } elseif ($pv->status === PvStatusEnum::REJECTED) {
+                        $this->notificationService->processNotificationRules('PV_REJECTED', $pv);
+                        $this->notificationService->sendInternalNotification('PV_REJECTED_NOTIFICATION', $pv->author, ['pv_id' => $pv->pv_id, 'comments' => $comment]);
+                    } elseif ($pv->status === PvStatusEnum::IN_REVISION) {
+                        $this->notificationService->processNotificationRules('PV_CHANGES_REQUESTED', $pv);
+                        $this->notificationService->sendInternalNotification('PV_CHANGES_REQUESTED_NOTIFICATION', $pv->author, ['pv_id' => $pv->pv_id, 'comments' => $comment]);
+                    }
+                }
+
+                $this->auditService->logAction('PV_APPROVAL_RECORDED', $pv, ['pv_id' => $pv->pv_id, 'approver_id' => $approverUser->id, 'decision' => $decision->value]);
+            });
+        } catch (Throwable $e) {
+            throw $e;
         }
     }
 
-    /**
-     * @throws CommissionException
-     */
-    public function rejectPv(Pv $pv, User $rejectingUser, string $comments): void
+    private function determineFinalPvStatus(Pv $pv): PvStatusEnum
     {
-        if ($pv->status !== PvStatusEnum::PENDING_APPROVAL) {
-            throw new CommissionException('Ce PV ne peut pas être rejeté car il n\'est pas en attente d\'approbation.');
+        $approvals = $pv->approvals;
+        $requiredApproversCount = $pv->commissionSession->teachers->count();
+
+        $approvedCount = $approvals->where('pv_approval_decision_id', PvApprovalDecisionEnum::APPROVED->value)->count();
+        $changesRequestedCount = $approvals->where('pv_approval_decision_id', PvApprovalDecisionEnum::CHANGES_REQUESTED->value)->count();
+        $rejectedCount = $approvals->where('pv_approval_decision_id', PvApprovalDecisionEnum::REJECTED->value)->count();
+
+        if ($rejectedCount > 0) {
+            return PvStatusEnum::REJECTED;
         }
 
-        $pv->approvals()->create([
-            'user_id' => $rejectingUser->id,
-            'decision' => PvApprovalDecisionEnum::CHANGES_REQUESTED,
-            'comments' => $comments,
-        ]);
+        if ($changesRequestedCount > 0) {
+            return PvStatusEnum::IN_REVISION;
+        }
 
-        $pv->status = PvStatusEnum::CHANGES_REQUESTED;
-        $pv->save();
+        if ($approvedCount >= $requiredApproversCount) {
+            return PvStatusEnum::APPROVED;
+        }
 
-        $this->notificationService->processNotificationRules('PV_REJECTED', $pv, ['rejecting_user' => $rejectingUser->name, 'comments' => $comments]);
+        return PvStatusEnum::PENDING_APPROVAL;
     }
 
     public function forcePvApproval(Pv $pv, User $adminUser, string $reason): void

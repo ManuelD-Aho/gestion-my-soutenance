@@ -11,9 +11,8 @@ use App\Enums\VoteDecisionEnum;
 use App\Filament\AppPanel\Resources\ReportResource\Pages;
 use App\Models\ConformityCriterion;
 use App\Models\Report;
-use App\Models\Student;
-use App\Models\Teacher;
-use App\Models\User;
+use App\Models\Student; // Ajout de l'import Student
+use App\Models\Teacher; // Ajout de l'import Teacher
 use App\Services\ConformityCheckService;
 use App\Services\PdfGenerationService;
 use App\Services\ReportFlowService;
@@ -77,7 +76,7 @@ class ReportResource extends Resource
                 });
         }
 
-        return parent::getEloquentQuery()->where('id', null); // No access for other roles
+        return parent::getEloquentQuery()->where('id', null);
     }
 
     public static function form(Form $form): Form
@@ -118,12 +117,12 @@ class ReportResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->disabled(true), // Always disabled, set by system
+                            ->disabled(true),
                         Select::make('academic_year_id')
                             ->label('Année Académique')
                             ->relationship('academicYear', 'label')
                             ->required()
-                            ->disabled(true), // Always disabled, set by system
+                            ->disabled(true),
                         Select::make('report_template_id')
                             ->label('Modèle de Rapport')
                             ->relationship('reportTemplate', 'name')
@@ -132,12 +131,12 @@ class ReportResource extends Resource
                         Select::make('status')
                             ->label('Statut du Rapport')
                             ->options(ReportStatusEnum::class)
-                            ->disabled(true), // Statut géré par le workflow et les actions
+                            ->disabled(true),
                         TextInput::make('page_count')
                             ->label('Nombre de Pages')
                             ->numeric()
                             ->nullable()
-                            ->disabled(true), // Peut être mis à jour automatiquement ou par l'Admin
+                            ->disabled(true),
                         TextInput::make('version')
                             ->label('Version')
                             ->numeric()
@@ -270,11 +269,16 @@ class ReportResource extends Resource
                     ->sortable()
                     ->limit(50)
                     ->tooltip(fn (Report $record): ?string => $record->title),
-                TextColumn::make('student.full_name')
-                    ->label('Étudiant')
-                    ->searchable(['first_name', 'last_name'])
+                TextColumn::make('student.first_name') // Utilise first_name/last_name directement
+                    ->label('Prénom Étudiant')
+                    ->searchable()
                     ->sortable()
-                    ->visible(! $isStudent), // Étudiant n'a pas besoin de voir son propre nom
+                    ->visible(! $isStudent),
+                TextColumn::make('student.last_name') // Utilise first_name/last_name directement
+                    ->label('Nom Étudiant')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(! $isStudent),
                 TextColumn::make('academicYear.label')
                     ->label('Année Académique')
                     ->sortable(),
@@ -312,7 +316,7 @@ class ReportResource extends Resource
                     ->label('Vérifier Conformité')
                     ->icon('heroicon-o-clipboard-document-check')
                     ->color('primary')
-                    ->visible(fn (Report $record) => $isConformityAgent && ($record->status === ReportStatusEnum::SUBMITTED || $record->status === ReportStatusEnum::IN_CONFORMITY_CHECK))
+                    ->visible(fn (Report $record): bool => $isConformityAgent && ($record->status === ReportStatusEnum::SUBMITTED || $record->status === ReportStatusEnum::IN_CONFORMITY_CHECK))
                     ->form(function (Report $record, ConformityCheckService $conformityCheckService) {
                         $criteria = ConformityCriterion::where('is_active', true)->where('type', 'MANUAL')->get();
                         $schema = [];
@@ -334,14 +338,20 @@ class ReportResource extends Resource
 
                         return $schema;
                     })
-                    ->action(function (array $data, Report $record, ConformityCheckService $conformityCheckService) use ($user) {
+                    ->action(function (array $data, Report $record) use ($user) {
                         try {
-                            // S'assurer que $user est bien une instance de \App\Models\User
-                            $userModel = $user instanceof User ? $user : ($user ? User::find(method_exists($user, 'getAuthIdentifier') ? $user->getAuthIdentifier() : null) : null);
-                            $conformityCheckService->checkConformity($record, $data['criteria_results'], $userModel);
-                            Notification::make()->title('Vérification de conformité effectuée')->success()->send();
+                            app(ConformityCheckService::class)->checkConformity($record, $data['criteria_results'], $user);
+                            Notification::make()
+                                ->title('Vérification de conformité effectuée')
+                                ->body("Le rapport {$record->report_id} a été évalué pour sa conformité.")
+                                ->success()
+                                ->send();
                         } catch (\Throwable $e) {
-                            Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
+                            Notification::make()
+                                ->title('Erreur lors de la vérification de conformité')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
                         }
                     }),
                 Action::make('return_for_correction')
@@ -357,38 +367,39 @@ class ReportResource extends Resource
                     ])
                     ->action(function (array $data, Report $record, ReportFlowService $reportFlowService) use ($user) {
                         try {
-                            // S'assurer que $user est bien une instance de \App\Models\User
-                            $userModel = $user instanceof User ? $user : ($user ? User::find(method_exists($user, 'getAuthIdentifier') ? $user->getAuthIdentifier() : null) : null);
-                            $reportFlowService->updateReportStatus($record, ReportStatusEnum::NEEDS_CORRECTION, $userModel, $data['comments']);
-                            Notification::make()->title('Rapport retourné pour correction')->body('L\'étudiant a été notifié des corrections requises.')->success()->send();
+                            $reportFlowService->updateReportStatus($record, ReportStatusEnum::NEEDS_CORRECTION, $user, $data['comments']);
+                            Notification::make()
+                                ->title('Rapport retourné pour correction')
+                                ->body("Le rapport {$record->report_id} a été marqué 'Nécessite Correction'.")
+                                ->success()
+                                ->send();
                         } catch (\Throwable $e) {
-                            Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
+                            Notification::make()
+                                ->title('Erreur lors du retour pour correction')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
                         }
                     }),
-                Action::make('download_pdf')
+                Action::make('download_report_pdf')
                     ->label('Télécharger PDF')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->color('secondary')
-                    ->visible(fn (Report $record) => $record->status === ReportStatusEnum::VALIDATED || $record->status === ReportStatusEnum::ARCHIVED)
-                    ->action(function (Report $record, PdfGenerationService $pdfGenerationService) {
-                        try {
-                            // Find the generated document for this report
-                            $document = $record->documents()->whereHas('documentType', fn ($q) => $q->where('name', DocumentTypeEnum::RAPPORT->value))->first();
-
-                            if ($document && Storage::exists($document->file_path)) {
-                                return Storage::download($document->file_path);
-                            }
-
-                            Notification::make()->title('Fichier non trouvé')->body('Le PDF du rapport n\'est pas encore disponible ou a été supprimé.')->danger()->send();
-                            return null;
-                        } catch (\Throwable $e) {
-                            Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
-                            return null;
+                    ->action(function (Report $record) {
+                        $document = $record->documents()->whereHas('documentType', fn ($query) => $query->where('name', 'Rapport de Soutenance'))->first();
+                        if ($document && Storage::exists($document->file_path)) {
+                            return Storage::download($document->file_path);
                         }
+                        Notification::make()
+                            ->title('Fichier PDF non trouvé')
+                            ->body('Le fichier PDF du rapport n\'a pas encore été généré ou n\'existe plus.')
+                            ->warning()
+                            ->send();
+
+                        return null;
                     }),
             ])
             ->bulkActions([
-                // Pas d'actions de masse par défaut
+                //
             ]);
     }
 

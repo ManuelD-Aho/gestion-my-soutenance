@@ -43,14 +43,14 @@ class InternshipResource extends Resource
         }
 
         if ($user->hasRole('Responsable Scolarite')) {
-            return parent::getEloquentQuery(); // RS peut voir tous les stages
+            return parent::getEloquentQuery();
         }
 
         if ($user->hasRole('Etudiant') && $user->student) {
             return parent::getEloquentQuery()->where('student_id', $user->student->id);
         }
 
-        return parent::getEloquentQuery()->where('id', null); // No access for other roles
+        return parent::getEloquentQuery()->where('id', null);
     }
 
     public static function form(Form $form): Form
@@ -70,21 +70,21 @@ class InternshipResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->disabled(! $isRS), // Seul le RS peut choisir l'étudiant
+                            ->disabled(! $isRS),
                         Select::make('company_id')
                             ->label('Entreprise')
                             ->relationship('company', 'name')
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->createOptionForm([ // Permettre la création rapide d'une nouvelle entreprise
+                            ->createOptionForm([
                                 TextInput::make('name')->required()->unique()->maxLength(200),
                                 TextInput::make('activity_sector')->maxLength(100),
                                 TextInput::make('contact_name')->maxLength(100),
                                 TextInput::make('contact_email')->email()->maxLength(255),
                                 TextInput::make('contact_phone')->tel()->maxLength(20),
                             ])
-                            ->disabled(! $isRS && ! $isStudent), // Étudiant peut choisir l'entreprise
+                            ->disabled(! $isRS && ! $isStudent),
                         DatePicker::make('start_date')
                             ->label('Date de Début')
                             ->required()
@@ -107,11 +107,11 @@ class InternshipResource extends Resource
                     ])->columns(2),
 
                 Section::make('Validation du Stage')
-                    ->visible(fn (?Internship $record) => $record && $isRS) // Visible seulement pour le RS et si le stage existe
+                    ->visible(fn (?Internship $record) => $record && $isRS)
                     ->schema([
                         Toggle::make('is_validated')
                             ->label('Stage Validé')
-                            ->disabled(fn (?Internship $record) => $record && $record->is_validated), // Une fois validé, ne peut plus être décoché
+                            ->disabled(fn (?Internship $record) => $record && $record->is_validated),
                         DateTimePicker::make('validation_date')
                             ->label('Date de Validation')
                             ->disabled(),
@@ -130,9 +130,13 @@ class InternshipResource extends Resource
 
         return $table
             ->columns([
-                TextColumn::make('student.full_name')
-                    ->label('Étudiant')
-                    ->searchable(['first_name', 'last_name'])
+                TextColumn::make('student.first_name') // Utilise first_name/last_name directement
+                    ->label('Prénom Étudiant')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('student.last_name') // Utilise first_name/last_name directement
+                    ->label('Nom Étudiant')
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('company.name')
                     ->label('Entreprise')
@@ -161,7 +165,7 @@ class InternshipResource extends Resource
                         false => 'Non Validé',
                     ])
                     ->label('Statut de Validation'),
-                \Filament\Tables\Filters\SelectFilter::make('academic_year_id') // Supposons une relation academicYear sur Internship
+                \Filament\Tables\Filters\SelectFilter::make('academic_year_id')
                     ->relationship('student.enrollments.academicYear', 'label')
                     ->label('Année Académique Étudiant'),
             ])
@@ -173,13 +177,12 @@ class InternshipResource extends Resource
                     ->label('Valider Stage')
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
-                    ->visible(fn (Internship $record) => $isRS && ! $record->is_validated)
+                    ->visible(fn (Internship $record): bool => $isRS && ! $record->is_validated)
                     ->requiresConfirmation()
                     ->action(function (Internship $record) {
                         try {
-                            /** @var \App\Models\User $user */
                             $user = Auth::user();
-                            if (!$user) {
+                            if (! $user) {
                                 throw new \Exception('Utilisateur non authentifié.');
                             }
                             $record->is_validated = true;

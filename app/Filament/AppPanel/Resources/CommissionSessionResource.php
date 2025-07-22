@@ -12,8 +12,11 @@ use App\Filament\AppPanel\Resources\CommissionSessionResource\Pages;
 use App\Models\CommissionSession;
 use App\Models\Report;
 use App\Models\Teacher;
+use App\Services\AuditService; // Ajout de l'import
 use App\Services\CommissionFlowService;
+use App\Services\NotificationService; // Ajout de l'import
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\MultiSelect;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -29,8 +32,6 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
-use App\Services\AuditService;
-use App\Services\NotificationService;
 
 class CommissionSessionResource extends Resource
 {
@@ -55,7 +56,7 @@ class CommissionSessionResource extends Resource
                 ->orWhere('president_teacher_id', $user->teacher->id);
         }
 
-        return parent::getEloquentQuery()->where('id', null); // No access for other roles
+        return parent::getEloquentQuery()->where('id', null);
     }
 
     public static function form(Form $form): Form
@@ -101,14 +102,14 @@ class CommissionSessionResource extends Resource
                         Select::make('status')
                             ->label('Statut de la Session')
                             ->options(CommissionSessionStatusEnum::class)
-                            ->disabled() // Statut géré par le workflow
+                            ->disabled()
                             ->default(CommissionSessionStatusEnum::PLANNED),
                     ])->columns(2),
 
                 Section::make('Membres de la Commission')
                     ->description('Ajoutez les enseignants qui participeront à cette session.')
                     ->schema([
-                        Select::make('teachers')
+                        MultiSelect::make('teachers')
                             ->label('Sélectionner les Membres')
                             ->relationship('teachers', 'last_name')
                             ->getOptionLabelFromRecordUsing(fn (Teacher $record) => "{$record->first_name} {$record->last_name}")
@@ -142,7 +143,8 @@ class CommissionSessionResource extends Resource
             ->columns([
                 TextColumn::make('session_id')
                     ->label('ID Session')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('name')
                     ->label('Nom')
                     ->searchable()
@@ -185,20 +187,12 @@ class CommissionSessionResource extends Resource
                     ->label('Démarrer Session')
                     ->icon('heroicon-o-play')
                     ->color('success')
-                    ->visible(fn (CommissionSession $record) => $isPresident && $record->status === CommissionSessionStatusEnum::PLANNED)
+                    ->visible(fn (CommissionSession $record): bool => $record->status === CommissionSessionStatusEnum::PLANNED)
                     ->requiresConfirmation()
                     ->action(function (CommissionSession $record) {
                         try {
-                            /** @var \App\Models\User $user */
-                            $user = Auth::user();
-                            if (!$user) throw new \Exception('Utilisateur non authentifié');
-
-                            $record->status = CommissionSessionStatusEnum::IN_PROGRESS;
-                            $record->save();
-
-                            app(AuditService::class)->logAction('COMMISSION_SESSION_STARTED', $record, ['session_id' => $record->session_id, 'user_id' => $user->id]);
-                            app(NotificationService::class)->processNotificationRules('COMMISSION_SESSION_STARTED', $record);
-
+                            // La logique est maintenant dans le service
+                            app(CommissionFlowService::class)->startSession($record, auth()->user());
                             Notification::make()->title('Session démarrée')->body('La session est maintenant en cours.')->success()->send();
                         } catch (\Throwable $e) {
                             Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
@@ -208,24 +202,29 @@ class CommissionSessionResource extends Resource
                     ->label('Clôturer Session')
                     ->icon('heroicon-o-lock-closed')
                     ->color('danger')
-                    ->visible(fn (CommissionSession $record) => $isPresident && $record->status === CommissionSessionStatusEnum::IN_PROGRESS)
+                    ->visible(fn (CommissionSession $record): bool => $record->status === CommissionSessionStatusEnum::IN_PROGRESS)
                     ->requiresConfirmation()
                     ->action(function (CommissionSession $record, CommissionFlowService $commissionFlowService) {
                         try {
-                            /** @var \App\Models\User $user */
-                            $user = Auth::user();
-                            if (!$user) throw new \Exception('Utilisateur non authentifié');
-                            $commissionFlowService->closeSession($record, $user);
-                            Notification::make()->title('Session clôturée')->body('La session a été clôturée et les décisions finalisées.')->success()->send();
+                            $commissionFlowService->closeSession($record, auth()->user());
+                            Notification::make()
+                                ->title('Session clôturée avec succès')
+                                ->body("La session '{$record->name}' a été clôturée et les rapports finalisés.")
+                                ->success()
+                                ->send();
                         } catch (\Throwable $e) {
-                            Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
+                            Notification::make()
+                                ->title('Erreur lors de la clôture de la session')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
                         }
                     }),
                 Action::make('record_vote')
                     ->label('Enregistrer Vote')
                     ->icon('heroicon-o-check-circle')
                     ->color('info')
-                    ->visible(fn (CommissionSession $record) => $record->status === CommissionSessionStatusEnum::IN_PROGRESS && $isMember)
+                    ->visible(fn (CommissionSession $record): bool => $record->status === CommissionSessionStatusEnum::IN_PROGRESS && $isMember)
                     ->form([
                         Select::make('report_id')
                             ->label('Rapport')
@@ -243,11 +242,8 @@ class CommissionSessionResource extends Resource
                     ])
                     ->action(function (array $data, CommissionSession $record, CommissionFlowService $commissionFlowService) {
                         try {
-                            /** @var \App\Models\User $user */
-                            $user = Auth::user();
-                            if (!$user) throw new \Exception('Utilisateur non authentifié');
                             $report = Report::find($data['report_id']);
-                            $commissionFlowService->recordVote($record, $report, $user, VoteDecisionEnum::from($data['decision']), $data['comment']);
+                            $commissionFlowService->recordVote($record, $report, auth()->user(), VoteDecisionEnum::from($data['decision']), $data['comment']);
                             Notification::make()->title('Vote enregistré')->body('Votre vote a été enregistré avec succès.')->success()->send();
                         } catch (\Throwable $e) {
                             Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
@@ -257,17 +253,15 @@ class CommissionSessionResource extends Resource
                     ->label('Générer PV')
                     ->icon('heroicon-o-document-text')
                     ->color('secondary')
-                    ->visible(fn (CommissionSession $record) => $record->status === CommissionSessionStatusEnum::CLOSED && $isPresident)
+                    ->visible(fn (CommissionSession $record): bool => $record->status === CommissionSessionStatusEnum::CLOSED && $isPresident)
                     ->requiresConfirmation()
                     ->action(function (CommissionSession $record, CommissionFlowService $commissionFlowService) {
                         try {
-                            /** @var \App\Models\User $user */
-                            $user = Auth::user();
-                            if (!$user) throw new \Exception('Utilisateur non authentifié');
-                            $commissionFlowService->generatePv($record, $user);
+                            $commissionFlowService->generatePv($record, auth()->user());
                             Notification::make()->title('PV généré')->body('Le Procès-Verbal a été généré et est en attente d\'approbation.')->success()->send();
                         } catch (\Throwable $e) {
-                            Notification::make()->title('Erreur')->body($e->getMessage())->danger()->send();
+                            Notification::make()->title('Erreur')->body($e->getMessage())->danger()
+                                ->send();
                         }
                     }),
             ])
@@ -279,7 +273,7 @@ class CommissionSessionResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // RelationManagers pour les rapports et les membres si nécessaire
+            //
         ];
     }
 
