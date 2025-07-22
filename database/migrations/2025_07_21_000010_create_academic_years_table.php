@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('academic_years', function (Blueprint $table) {
             $table->id();
+            $table->string('academic_year_id', 50)->unique()->nullable()->comment('Identifiant métier unique de l\'année académique'); // <-- AJOUTER CETTE LIGNE
             $table->string('label', 50)->unique()->comment('Libellé de l\'année académique (ex: 2024-2025)');
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
