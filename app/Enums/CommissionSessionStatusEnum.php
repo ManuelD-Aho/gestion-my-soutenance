@@ -1,11 +1,13 @@
 <?php
 
-    namespace App\Enums;
+declare(strict_types=1);
 
-    enum CommissionSessionStatusEnum: string
-    {
-        case PLANNED = 'Planifiée';
-        case IN_PROGRESS = 'En cours';
-        case CLOSED = 'Clôturée';
-        case ARCHIVED = 'Archivée';
-    }
+namespace App\Enums;
+
+enum CommissionSessionStatusEnum: string
+{
+    case PLANNED = 'Planifiée';
+    case IN_PROGRESS = 'En cours';
+    case CLOSED = 'Clôturée';
+    case ARCHIVED = 'Archivée';
+}

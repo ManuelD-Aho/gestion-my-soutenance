@@ -1,22 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Imports;
 
 use App\Models\Student;
-use Illuminate\Support\Facades\Log; // Ajouter
+// Ajouter
 use App\Models\User;
 use App\Services\UserManagementService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Illuminate\Support\Facades\Validator;
 use Throwable;
 
 class StudentsImport implements ToCollection, WithHeadingRow
 {
     protected array $mapping;
+
     protected User $importer;
+
     protected UserManagementService $userManagementService;
+
     protected array $results = ['success' => 0, 'failed' => 0, 'errors' => []];
 
     public function __construct(array $mapping, User $importer)

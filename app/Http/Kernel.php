@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http;
 
+use App\Http\Middleware\EnsureSessionIntegrity;
+use App\Http\Middleware\EnsureStudentIsEligible;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\TrustProxies;
 use Illuminate\Auth\Middleware\Authenticate;
@@ -10,10 +14,8 @@ use Illuminate\Auth\Middleware\Authorize;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
-use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Cookie\Middleware\EncryptCookies; // Import ajouté
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
-use App\Http\Middleware\EnsureSessionIntegrity; // Import ajouté
-use App\Http\Middleware\EnsureStudentIsEligible;
 use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance;
 use Illuminate\Foundation\Http\Middleware\TrimStrings;

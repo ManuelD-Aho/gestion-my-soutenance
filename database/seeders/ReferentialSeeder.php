@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use App\Models\AcademicDecision;
@@ -11,8 +13,6 @@ use App\Models\DocumentType;
 use App\Models\Fonction;
 use App\Models\Grade;
 use App\Models\JuryRole;
-use App\Models\MatriceNotificationRule;
-use App\Models\Notification;
 use App\Models\PaymentStatus;
 use App\Models\PenaltyStatus;
 use App\Models\PvApprovalDecision;
@@ -34,7 +34,7 @@ class ReferentialSeeder extends Seeder
     public function run(): void
     {
         $uniqueIdGeneratorService = app(UniqueIdGeneratorService::class);
-        $currentYear = (int)date('Y');
+        $currentYear = (int) date('Y');
 
         Event::fake();
 

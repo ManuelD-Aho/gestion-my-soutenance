@@ -1,15 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Enums\ReportStatusEnum;
 use App\Exceptions\IncompleteSubmissionException;
 use App\Exceptions\StateConflictException;
-use App\Mail\ReportNeedsCorrectionMail;
 use App\Models\Report;
 use App\Models\ReportSection;
 use App\Models\ReportTemplate;
-use App\Models\ReportTemplateSection;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +18,9 @@ use Throwable;
 class ReportFlowService
 {
     protected UniqueIdGeneratorService $uniqueIdGeneratorService;
+
     protected AuditService $auditService;
+
     protected NotificationService $notificationService;
 
     public function __construct(
@@ -39,7 +41,7 @@ class ReportFlowService
 
                 if ($reportFresh->version !== $expectedVersion) {
                     throw new StateConflictException(
-                        "Le statut ou le contenu du rapport a été modifié par un autre utilisateur. Veuillez rafraîchir la page et réessayer."
+                        'Le statut ou le contenu du rapport a été modifié par un autre utilisateur. Veuillez rafraîchir la page et réessayer.'
                     );
                 }
 
@@ -50,7 +52,7 @@ class ReportFlowService
                 $this->validateReportCompleteness($reportFresh, $contentData);
 
                 if (empty($reportFresh->report_id)) {
-                    $reportFresh->report_id = $this->uniqueIdGeneratorService->generate("RAP", (int)date('Y'));
+                    $reportFresh->report_id = $this->uniqueIdGeneratorService->generate('RAP', (int) date('Y'));
                 }
 
                 $reportFresh->status = ReportStatusEnum::SUBMITTED;
@@ -72,9 +74,9 @@ class ReportFlowService
                 $sectionsToDelete = $existingSectionIds->diff($submittedSectionIds);
                 ReportSection::whereIn('id', $sectionsToDelete)->delete();
 
-                $this->auditService->logAction("REPORT_SUBMITTED", $reportFresh, ['report_id' => $reportFresh->report_id, 'student_id' => $reportFresh->student->id]);
+                $this->auditService->logAction('REPORT_SUBMITTED', $reportFresh, ['report_id' => $reportFresh->report_id, 'student_id' => $reportFresh->student->id]);
 
-                $this->notificationService->processNotificationRules("REPORT_SUBMITTED", $reportFresh, ['report_title' => $reportFresh->title]);
+                $this->notificationService->processNotificationRules('REPORT_SUBMITTED', $reportFresh, ['report_title' => $reportFresh->title]);
             });
         } catch (Throwable $e) {
             throw $e;
@@ -90,7 +92,7 @@ class ReportFlowService
                 $reportFresh = Report::find($report->id);
                 if ($expectedVersion !== null && $reportFresh->version !== $expectedVersion) {
                     throw new StateConflictException(
-                        "Le statut du rapport a été modifié par un autre utilisateur. Veuillez rafraîchir la page."
+                        'Le statut du rapport a été modifié par un autre utilisateur. Veuillez rafraîchir la page.'
                     );
                 }
 
@@ -98,7 +100,7 @@ class ReportFlowService
                     throw new AuthorizationException("L'utilisateur n'est pas autorisé à effectuer cette transition de statut.");
                 }
 
-                if (!$this->isValidTransition($oldStatus, $newStatus)) {
+                if (! $this->isValidTransition($oldStatus, $newStatus)) {
                     throw new \InvalidArgumentException("Transition de statut invalide de {$oldStatus->value} à {$newStatus->value}");
                 }
 
@@ -111,14 +113,14 @@ class ReportFlowService
                 $reportFresh->version++;
                 $reportFresh->save();
 
-                $this->auditService->logAction("REPORT_STATUS_UPDATED", $reportFresh, [
+                $this->auditService->logAction('REPORT_STATUS_UPDATED', $reportFresh, [
                     'old_status' => $oldStatus->value,
                     'new_status' => $newStatus->value,
                     'reason' => $reason,
                     'actor_id' => $actor->id,
                 ]);
 
-                $this->notificationService->processNotificationRules("REPORT_STATUS_UPDATED", $reportFresh, [
+                $this->notificationService->processNotificationRules('REPORT_STATUS_UPDATED', $reportFresh, [
                     'old_status' => $oldStatus->value,
                     'new_status' => $newStatus->value,
                     'reason' => $reason,
@@ -142,7 +144,7 @@ class ReportFlowService
             ReportStatusEnum::ARCHIVED => [], // Aucun état ne peut transiter depuis Archivé
         ];
 
-        return in_array($newStatus, $transitions[$oldStatus] ?? []);
+        return in_array($newStatus, $transitions[$oldStatus] ?? [], true);
     }
 
     private function validateReportCompleteness(Report $report, array $contentData): void
@@ -153,9 +155,9 @@ class ReportFlowService
             $submittedSectionTitles = collect($contentData)->pluck('title')->toArray();
 
             $missingSections = array_diff($mandatorySections, $submittedSectionTitles);
-            if (!empty($missingSections)) {
+            if (! empty($missingSections)) {
                 throw new IncompleteSubmissionException(
-                    "Soumission impossible. Les sections obligatoires suivantes sont manquantes : " . implode(', ', $missingSections)
+                    'Soumission impossible. Les sections obligatoires suivantes sont manquantes : '.implode(', ', $missingSections)
                 );
             }
         }

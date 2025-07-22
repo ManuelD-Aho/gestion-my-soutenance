@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
@@ -14,7 +16,9 @@ class Sequence extends Model
 
     // Clé primaire composite
     protected $primaryKey = ['name', 'year'];
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $casts = [
@@ -27,7 +31,7 @@ class Sequence extends Model
     protected function setKeysForSaveQuery($query): Builder
     {
         $keys = $this->getKeyName();
-        if (!is_array($keys)) {
+        if (! is_array($keys)) {
             return parent::setKeysForSaveQuery($query);
         }
 

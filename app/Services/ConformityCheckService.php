@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Enums\ConformityStatusEnum;
 use App\Enums\ReportStatusEnum;
-use App\Models\ConformityCriterion;
 use App\Models\ConformityCheckDetail;
+use App\Models\ConformityCriterion;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -14,8 +16,11 @@ use Throwable;
 class ConformityCheckService
 {
     protected ReportFlowService $reportFlowService;
+
     protected AuditService $auditService;
+
     protected NotificationService $notificationService;
+
     protected PenaltyService $penaltyService; // Ajouté pour les vérifications automatiques avec pénalité
 
     public function __construct(
@@ -49,7 +54,7 @@ class ConformityCheckService
 
                 foreach ($criteriaResults as $criterionId => $resultData) {
                     $criterion = ConformityCriterion::find($criterionId);
-                    if (!$criterion) {
+                    if (! $criterion) {
                         throw new \InvalidArgumentException("Critère de conformité inconnu: {$criterionId}.");
                     }
 
@@ -67,22 +72,22 @@ class ConformityCheckService
 
                     if (ConformityStatusEnum::from($resultData['status']) === ConformityStatusEnum::NON_CONFORME) {
                         $isGloballyConforme = false;
-                        if (!empty($resultData['comment'])) {
+                        if (! empty($resultData['comment'])) {
                             $commentsForStudent[] = "{$criterion->label}: {$resultData['comment']}";
                         }
                     }
                 }
 
                 if ($isGloballyConforme) {
-                    $this->reportFlowService->updateReportStatus($report, ReportStatusEnum::IN_COMMISSION_REVIEW, $agent, "Rapport jugé conforme.");
-                    $this->notificationService->processNotificationRules("REPORT_CONFORME_A_EVALUER", $report, ['report_title' => $report->title]);
+                    $this->reportFlowService->updateReportStatus($report, ReportStatusEnum::IN_COMMISSION_REVIEW, $agent, 'Rapport jugé conforme.');
+                    $this->notificationService->processNotificationRules('REPORT_CONFORME_A_EVALUER', $report, ['report_title' => $report->title]);
                 } else {
-                    $aggregatedComments = "Votre rapport nécessite les corrections suivantes:\n" . implode("\n", $commentsForStudent);
+                    $aggregatedComments = "Votre rapport nécessite les corrections suivantes:\n".implode("\n", $commentsForStudent);
                     $this->reportFlowService->updateReportStatus($report, ReportStatusEnum::NEEDS_CORRECTION, $agent, $aggregatedComments);
-                    $this->notificationService->processNotificationRules("CORRECTIONS_REQUISES", $report, ['report_title' => $report->title, 'comments' => $aggregatedComments]);
+                    $this->notificationService->processNotificationRules('CORRECTIONS_REQUISES', $report, ['report_title' => $report->title, 'comments' => $aggregatedComments]);
                 }
 
-                $this->auditService->logAction("REPORT_CONFORMITY_CHECKED", $report, [
+                $this->auditService->logAction('REPORT_CONFORMITY_CHECKED', $report, [
                     'agent_id' => $agent->id,
                     'overall_status' => $isGloballyConforme ? 'Conforme' : 'Non Conforme',
                     'details' => $criteriaResults,
@@ -129,14 +134,14 @@ class ConformityCheckService
                         $comment = "Le rapport a moins de {$minPages} pages ({$report->page_count} pages).";
                     }
                     break;
-                // Ajouter d'autres cas pour les vérifications automatiques (ex: détection de plagiat via API externe)
-                // case 'PLAGIARISM_CHECK':
-                //     $plagiarismScore = $this->plagiarismService->check($report->content);
-                //     if ($plagiarismScore > config('app.plagiarism_threshold')) {
-                //         $status = ConformityStatusEnum::NON_CONFORME;
-                //         $comment = "Taux de plagiat détecté de {$plagiarismScore}%.";
-                //     }
-                //     break;
+                    // Ajouter d'autres cas pour les vérifications automatiques (ex: détection de plagiat via API externe)
+                    // case 'PLAGIARISM_CHECK':
+                    //     $plagiarismScore = $this->plagiarismService->check($report->content);
+                    //     if ($plagiarismScore > config('app.plagiarism_threshold')) {
+                    //         $status = ConformityStatusEnum::NON_CONFORME;
+                    //         $comment = "Taux de plagiat détecté de {$plagiarismScore}%.";
+                    //     }
+                    //     break;
             }
 
             $automaticResults[$criterion->id] = [

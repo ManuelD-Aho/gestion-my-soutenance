@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Events\AuditActionShouldBeLogged;
@@ -13,6 +15,7 @@ use Throwable;
 class AuditService
 {
     protected array $redactedKeys = ['password', 'password_confirmation', 'token', 'secret'];
+
     protected UniqueIdGeneratorService $uniqueIdGeneratorService;
 
     public function __construct(UniqueIdGeneratorService $uniqueIdGeneratorService)
@@ -29,21 +32,22 @@ class AuditService
     {
         try {
             $actionModel = Action::where('code', $actionCode)->first();
-            if (!$actionModel) {
+            if (! $actionModel) {
                 Log::warning("AuditService: Attempted to log an action with an unknown code: {$actionCode}");
+
                 return;
             }
 
             $userId = Auth::id();
             $ipAddress = request()->ip() ?? 'CLI';
-            $userAgent = request()->userAgent() ?? 'Artisan:' . implode(' ', request()->server('argv', []));
+            $userAgent = request()->userAgent() ?? 'Artisan:'.implode(' ', request()->server('argv', []));
 
             $auditableId = $auditable ? $auditable->getKey() : null;
             $auditableType = $auditable ? get_class($auditable) : null;
 
             $safeDetails = $this->redact($details);
 
-            $logId = $this->uniqueIdGeneratorService->generate("LOG", (int)date('Y'));
+            $logId = $this->uniqueIdGeneratorService->generate('LOG', (int) date('Y'));
 
             AuditLog::create([
                 'log_id' => $logId,
@@ -68,6 +72,7 @@ class AuditService
                 $details[$key] = '********';
             }
         }
+
         return $details;
     }
 }

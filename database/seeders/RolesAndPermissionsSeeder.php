@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Enums\UserAccountStatusEnum;
 use App\Models\Team;
+use App\Models\User;
+use App\Services\UniqueIdGeneratorService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
-use App\Enums\UserAccountStatusEnum;
-use App\Services\UniqueIdGeneratorService; // Import du service
+use Spatie\Permission\Models\Role; // Import du service
 
 class RolesAndPermissionsSeeder extends Seeder
 {
@@ -82,7 +84,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ]);
 
         // 3. Créer les utilisateurs par défaut
-        $currentYear = (int)date('Y');
+        $currentYear = (int) date('Y');
 
         // Admin
         $adminUser = User::firstOrCreate(
@@ -99,7 +101,7 @@ class RolesAndPermissionsSeeder extends Seeder
         if ($adminUser->ownedTeams->isEmpty()) {
             $adminUser->ownedTeams()->save(Team::forceCreate([
                 'user_id' => $adminUser->id,
-                'name' => $adminUser->name . "'s Team",
+                'name' => $adminUser->name."'s Team",
                 'personal_team' => true,
             ]));
         }

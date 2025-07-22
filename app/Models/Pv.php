@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Enums\PvStatusEnum;
@@ -13,7 +15,9 @@ class Pv extends Model
     use HasFactory;
 
     protected $primaryKey = 'id';
+
     public $incrementing = true;
+
     protected $keyType = 'int';
 
     protected $fillable = [

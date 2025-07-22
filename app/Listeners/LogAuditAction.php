@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Listeners;
 
 use App\Events\AuditActionShouldBeLogged;
@@ -12,6 +14,7 @@ class LogAuditAction implements ShouldQueue
     use InteractsWithQueue;
 
     public bool $afterCommit = true;
+
     protected AuditService $auditService;
 
     public function __construct(AuditService $auditService)

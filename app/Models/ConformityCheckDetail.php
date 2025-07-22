@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Enums\ConformityStatusEnum;
@@ -12,8 +14,11 @@ class ConformityCheckDetail extends Model
     use HasFactory;
 
     protected $table = 'conformity_check_details'; // Renommé pour cohérence
+
     protected $primaryKey = 'id';
+
     public $incrementing = true;
+
     protected $keyType = 'int';
 
     protected $fillable = [

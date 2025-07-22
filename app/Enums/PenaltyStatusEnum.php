@@ -1,10 +1,12 @@
 <?php
 
-    namespace App\Enums;
+declare(strict_types=1);
 
-    enum PenaltyStatusEnum: string
-    {
-        case DUE = 'Due';
-        case PAID = 'Réglée';
-        case WAIVED = 'Annulée';
-    }
+namespace App\Enums;
+
+enum PenaltyStatusEnum: string
+{
+    case DUE = 'Due';
+    case PAID = 'Réglée';
+    case WAIVED = 'Annulée';
+}

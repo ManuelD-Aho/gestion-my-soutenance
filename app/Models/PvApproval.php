@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Enums\PvApprovalDecisionEnum;
@@ -12,8 +14,11 @@ class PvApproval extends Model
     use HasFactory;
 
     protected $table = 'pv_approvals'; // Renommé pour cohérence
+
     protected $primaryKey = 'id';
+
     public $incrementing = true;
+
     protected $keyType = 'int';
 
     protected $fillable = [

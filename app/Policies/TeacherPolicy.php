@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
-use App\Models\User;
-use App\Models\Teacher; // Utiliser Teacher pour la cohérence
+use App\Models\Teacher;
+use App\Models\User; // Utiliser Teacher pour la cohérence
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class TeacherPolicy

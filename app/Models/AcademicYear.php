@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Enums\AcademicYearStatusEnum;
@@ -12,7 +14,9 @@ class AcademicYear extends Model
     use HasFactory;
 
     protected $primaryKey = 'id'; // Assumer que 'id' est la PK auto-incrémentée par défaut
+
     public $incrementing = true;
+
     protected $keyType = 'int';
 
     protected $fillable = [

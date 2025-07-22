@@ -1,14 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Action;
-use App\Models\Notification;
-use App\Models\MatriceNotificationRule; // Assumer l'existence de ce modèle pour la matrice
+use App\Models\MatriceNotificationRule;
+use App\Models\Notification; // Assumer l'existence de ce modèle pour la matrice
 use App\Models\User;
 use App\Models\UserNotification; // Assumer l'existence de ce modèle pour les notifications internes
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role; // Utilisation du modèle Role de Spatie
@@ -27,8 +28,9 @@ class NotificationService
     {
         try {
             $notificationTemplate = Notification::where('code', $notificationCode)->first();
-            if (!$notificationTemplate) {
+            if (! $notificationTemplate) {
                 Log::warning("NotificationService: Attempted to send internal notification with unknown code: {$notificationCode}");
+
                 return;
             }
 
@@ -48,7 +50,7 @@ class NotificationService
             // Optionnel: Déclencher un événement pour une notification en temps réel (WebSocket/Livewire)
             // event(new \App\Events\UserNotificationReceived($recipient->id, $content));
 
-            $this->auditService->logAction("NOTIFICATION_SENT_INTERNAL", $recipient, ['notification_code' => $notificationCode, 'recipient_email' => $recipient->email]);
+            $this->auditService->logAction('NOTIFICATION_SENT_INTERNAL', $recipient, ['notification_code' => $notificationCode, 'recipient_email' => $recipient->email]);
         } catch (Throwable $e) {
             Log::error("NotificationService: Failed to send internal notification for {$recipient->email}: {$e->getMessage()}");
         }
@@ -60,7 +62,7 @@ class NotificationService
             $mailableInstance = new $mailableClass($data);
             Mail::to($recipient->email)->queue($mailableInstance); // Utilisation de la queue pour la résilience
 
-            $this->auditService->logAction("EMAIL_SENT", $recipient, ['mailable_class' => $mailableClass, 'recipient_email' => $recipient->email]);
+            $this->auditService->logAction('EMAIL_SENT', $recipient, ['mailable_class' => $mailableClass, 'recipient_email' => $recipient->email]);
         } catch (Throwable $e) {
             Log::error("NotificationService: Failed to send email ({$mailableClass}) to {$recipient->email}: {$e->getMessage()}");
         }
@@ -70,8 +72,9 @@ class NotificationService
     {
         try {
             $actionModel = Action::where('code', $actionCode)->first();
-            if (!$actionModel) {
+            if (! $actionModel) {
                 Log::warning("NotificationService: Attempted to process notification rules for unknown actionCode: {$actionCode}");
+
                 return;
             }
 
@@ -81,8 +84,9 @@ class NotificationService
 
             foreach ($rules as $rule) {
                 $recipientRole = Role::where('name', $rule->recipient_role_name)->first();
-                if (!$recipientRole) {
+                if (! $recipientRole) {
                     Log::warning("NotificationService: Notification rule {$rule->id} points to an unknown recipient role: {$rule->recipient_role_name}");
+
                     continue;
                 }
 
@@ -105,13 +109,13 @@ class NotificationService
 
                     if (($rule->channel === 'Email' || $rule->channel === 'Tous') && $mailableClass) {
                         $this->sendEmail($mailableClass, $recipient, $notificationData);
-                    } elseif (($rule->channel === 'Email' || $rule->channel === 'Tous') && !$mailableClass) {
+                    } elseif (($rule->channel === 'Email' || $rule->channel === 'Tous') && ! $mailableClass) {
                         Log::warning("NotificationService: No Mailable class defined for actionCode {$actionCode} for email sending.");
                     }
                 }
             }
 
-            $this->auditService->logAction("NOTIFICATION_RULE_PROCESSED", $relatedEntity, ['action_code' => $actionCode, 'rules_count' => $rules->count()]);
+            $this->auditService->logAction('NOTIFICATION_RULE_PROCESSED', $relatedEntity, ['action_code' => $actionCode, 'rules_count' => $rules->count()]);
         } catch (Throwable $e) {
             Log::error("NotificationService: Failed to process notification rules for action {$actionCode}: {$e->getMessage()}");
         }

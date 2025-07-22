@@ -1,17 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
 
 class SystemParameter extends Model
 {
     use HasFactory;
 
     protected $primaryKey = 'key'; // Clé primaire est une chaîne de caractères
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -28,7 +31,7 @@ class SystemParameter extends Model
     public static function getValue(string $key, $default = null)
     {
         $parameter = static::find($key);
-        if (!$parameter) {
+        if (! $parameter) {
             return $default;
         }
 

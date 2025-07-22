@@ -1,21 +1,24 @@
 <?php
 
-    namespace App\Filament\Admin\Pages;
+declare(strict_types=1);
 
-    use App\Filament\Admin\Widgets\LatestReportsOverview;
-    use App\Filament\Admin\Widgets\StatsOverview;
-    use Filament\Pages\Dashboard as BaseDashboard;
+namespace App\Filament\Admin\Pages;
 
-    class Dashboard extends BaseDashboard
+use App\Filament\Admin\Widgets\LatestReportsOverview;
+use App\Filament\Admin\Widgets\StatsOverview;
+use Filament\Pages\Dashboard as BaseDashboard;
+
+class Dashboard extends BaseDashboard
+{
+    protected static ?string $navigationIcon = 'heroicon-o-home';
+
+    protected static string $view = 'filament.admin.pages.dashboard';
+
+    public function getWidgets(): array
     {
-        protected static ?string $navigationIcon = 'heroicon-o-home';
-        protected static string $view = 'filament.admin.pages.dashboard';
-
-        public function getWidgets(): array
-        {
-            return [
-                StatsOverview::class,
-                LatestReportsOverview::class,
-            ];
-        }
+        return [
+            StatsOverview::class,
+            LatestReportsOverview::class,
+        ];
     }
+}

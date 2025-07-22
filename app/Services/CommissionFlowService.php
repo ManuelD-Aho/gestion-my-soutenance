@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Enums\CommissionSessionModeEnum;
@@ -13,7 +15,6 @@ use App\Models\CommissionSession;
 use App\Models\Pv;
 use App\Models\PvApproval;
 use App\Models\Report;
-use App\Models\Teacher;
 use App\Models\User;
 use App\Models\Vote;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -23,9 +24,13 @@ use Throwable;
 class CommissionFlowService
 {
     protected ReportFlowService $reportFlowService;
+
     protected AuditService $auditService;
+
     protected NotificationService $notificationService;
+
     protected PdfGenerationService $pdfGenerationService;
+
     protected UniqueIdGeneratorService $uniqueIdGeneratorService;
 
     public function __construct(
@@ -44,19 +49,19 @@ class CommissionFlowService
 
     public function createSession(array $data, User $presidentUser): CommissionSession
     {
-        if (!$presidentUser->hasRole("President Commission")) {
-            throw new AuthorizationException("Seul un Président de Commission peut créer une session.");
+        if (! $presidentUser->hasRole('President Commission')) {
+            throw new AuthorizationException('Seul un Président de Commission peut créer une session.');
         }
 
         $presidentTeacher = $presidentUser->teacher;
-        if (!$presidentTeacher) {
+        if (! $presidentTeacher) {
             throw new \InvalidArgumentException("L'utilisateur président n'est pas lié à un profil enseignant.");
         }
 
         try {
             return DB::transaction(function () use ($data, $presidentTeacher) {
                 $session = CommissionSession::create([
-                    'session_id' => $this->uniqueIdGeneratorService->generate("SESS", (int)date('Y')),
+                    'session_id' => $this->uniqueIdGeneratorService->generate('SESS', (int) date('Y')),
                     'name' => $data['name'],
                     'start_date' => $data['start_date'],
                     'end_date_planned' => $data['end_date_planned'],
@@ -66,7 +71,7 @@ class CommissionFlowService
                     'required_voters_count' => $data['required_voters_count'] ?? 1,
                 ]);
 
-                $this->auditService->logAction("COMMISSION_SESSION_CREATED", $session, ['session_id' => $session->session_id, 'president_id' => $presidentTeacher->id]);
+                $this->auditService->logAction('COMMISSION_SESSION_CREATED', $session, ['session_id' => $session->session_id, 'president_id' => $presidentTeacher->id]);
 
                 return $session;
             });
@@ -88,12 +93,12 @@ class CommissionFlowService
                 }
 
                 if ($session->reports->contains($report->id)) {
-                    throw new \InvalidArgumentException("Le rapport est déjà ajouté à cette session.");
+                    throw new \InvalidArgumentException('Le rapport est déjà ajouté à cette session.');
                 }
 
                 $session->reports()->attach($report->id);
 
-                $this->auditService->logAction("REPORT_ADDED_TO_SESSION", $session, ['session_id' => $session->session_id, 'report_id' => $report->report_id]);
+                $this->auditService->logAction('REPORT_ADDED_TO_SESSION', $session, ['session_id' => $session->session_id, 'report_id' => $report->report_id]);
             });
         } catch (Throwable $e) {
             throw $e;
@@ -105,15 +110,15 @@ class CommissionFlowService
         try {
             return DB::transaction(function () use ($session, $report, $voterUser, $decision, $comment) {
                 $voterTeacher = $voterUser->teacher;
-                if (!$voterTeacher || !$session->teachers->contains($voterTeacher->id)) {
+                if (! $voterTeacher || ! $session->teachers->contains($voterTeacher->id)) {
                     throw new AuthorizationException("L'utilisateur n'est pas un membre autorisé de cette commission.");
                 }
                 if ($session->status !== CommissionSessionStatusEnum::IN_PROGRESS) {
-                    throw new \InvalidArgumentException("Impossible de voter dans une session non en cours.");
+                    throw new \InvalidArgumentException('Impossible de voter dans une session non en cours.');
                 }
 
                 if (($decision === VoteDecisionEnum::REJECTED || $decision === VoteDecisionEnum::APPROVED_WITH_RESERVATIONS) && empty($comment)) {
-                    throw new \InvalidArgumentException("Un commentaire est obligatoire pour cette décision de vote.");
+                    throw new \InvalidArgumentException('Un commentaire est obligatoire pour cette décision de vote.');
                 }
 
                 $currentVoteRound = Vote::where('commission_session_id', $session->id)
@@ -133,7 +138,7 @@ class CommissionFlowService
                     $vote->save();
                 } else {
                     $vote = Vote::create([
-                        'vote_id' => $this->uniqueIdGeneratorService->generate("VOTE", (int)date('Y')),
+                        'vote_id' => $this->uniqueIdGeneratorService->generate('VOTE', (int) date('Y')),
                         'commission_session_id' => $session->id,
                         'report_id' => $report->id,
                         'teacher_id' => $voterTeacher->id,
@@ -144,7 +149,7 @@ class CommissionFlowService
                     ]);
                 }
 
-                $this->auditService->logAction("COMMISSION_VOTE_RECORDED", $vote, ['session_id' => $session->session_id, 'report_id' => $report->report_id, 'voter_id' => $voterUser->id, 'decision' => $decision->value, 'round' => $currentVoteRound]);
+                $this->auditService->logAction('COMMISSION_VOTE_RECORDED', $vote, ['session_id' => $session->session_id, 'report_id' => $report->report_id, 'voter_id' => $voterUser->id, 'decision' => $decision->value, 'round' => $currentVoteRound]);
 
                 return $vote;
             });
@@ -156,20 +161,20 @@ class CommissionFlowService
     public function closeSession(CommissionSession $session, User $presidentUser): void
     {
         if ($session->president_teacher_id !== $presidentUser->teacher->id) {
-            throw new AuthorizationException("Seul le président de la session peut la clôturer.");
+            throw new AuthorizationException('Seul le président de la session peut la clôturer.');
         }
         if ($session->status !== CommissionSessionStatusEnum::IN_PROGRESS) {
-            throw new CommissionException("La session doit être en cours pour être clôturée.");
+            throw new CommissionException('La session doit être en cours pour être clôturée.');
         }
 
         try {
             DB::transaction(function () use ($session, $presidentUser) {
                 foreach ($session->reports as $report) {
                     $finalDecisionEnum = $this->calculateFinalDecisionForReport($report, $session);
-                    if (!$finalDecisionEnum) {
+                    if (! $finalDecisionEnum) {
                         throw new CommissionException("Le rapport {$report->report_id} n'a pas de décision finale. Impossible de clôturer la session.");
                     }
-                    $this->reportFlowService->updateReportStatus($report, $finalDecisionEnum, $presidentUser, "Décision finale de la commission.");
+                    $this->reportFlowService->updateReportStatus($report, $finalDecisionEnum, $presidentUser, 'Décision finale de la commission.');
                 }
 
                 $session->status = CommissionSessionStatusEnum::CLOSED;
@@ -177,8 +182,8 @@ class CommissionFlowService
 
                 $this->generatePv($session, $presidentUser);
 
-                $this->auditService->logAction("COMMISSION_SESSION_CLOSED", $session, ['session_id' => $session->session_id, 'president_id' => $presidentUser->id]);
-                $this->notificationService->processNotificationRules("COMMISSION_SESSION_CLOSED", $session, ['session_id' => $session->session_id]);
+                $this->auditService->logAction('COMMISSION_SESSION_CLOSED', $session, ['session_id' => $session->session_id, 'president_id' => $presidentUser->id]);
+                $this->notificationService->processNotificationRules('COMMISSION_SESSION_CLOSED', $session, ['session_id' => $session->session_id]);
             });
         } catch (Throwable $e) {
             throw $e;
@@ -216,11 +221,11 @@ class CommissionFlowService
     public function generatePv(CommissionSession $session, User $authorUser): Pv
     {
         $authorTeacher = $authorUser->teacher;
-        if (!$authorTeacher || !$session->teachers->contains($authorTeacher->id)) {
+        if (! $authorTeacher || ! $session->teachers->contains($authorTeacher->id)) {
             throw new AuthorizationException("L'utilisateur n'est pas un membre autorisé de cette commission pour rédiger un PV.");
         }
         if ($session->status !== CommissionSessionStatusEnum::CLOSED) {
-            throw new \InvalidArgumentException("Impossible de générer un PV pour une session non clôturée.");
+            throw new \InvalidArgumentException('Impossible de générer un PV pour une session non clôturée.');
         }
 
         try {
@@ -228,7 +233,7 @@ class CommissionFlowService
                 $pvContent = $this->generatePvContentFromSessionData($session);
 
                 $pv = Pv::create([
-                    'pv_id' => $this->uniqueIdGeneratorService->generate("PV", (int)date('Y')),
+                    'pv_id' => $this->uniqueIdGeneratorService->generate('PV', (int) date('Y')),
                     'commission_session_id' => $session->id,
                     'type' => 'session',
                     'content' => $pvContent,
@@ -237,8 +242,8 @@ class CommissionFlowService
                     'approval_deadline' => now()->addDays(config('app.pv_approval_deadline_days', 7)),
                 ]);
 
-                $this->auditService->logAction("PV_GENERATED", $pv, ['pv_id' => $pv->pv_id, 'session_id' => $session->session_id, 'author_id' => $authorUser->id]);
-                $this->notificationService->processNotificationRules("PV_READY_FOR_APPROVAL", $pv, ['pv_id' => $pv->pv_id, 'session_id' => $session->session_id]);
+                $this->auditService->logAction('PV_GENERATED', $pv, ['pv_id' => $pv->pv_id, 'session_id' => $session->session_id, 'author_id' => $authorUser->id]);
+                $this->notificationService->processNotificationRules('PV_READY_FOR_APPROVAL', $pv, ['pv_id' => $pv->pv_id, 'session_id' => $session->session_id]);
 
                 return $pv;
             });
@@ -262,7 +267,7 @@ class CommissionFlowService
         foreach ($session->reports as $report) {
             $finalDecision = $this->calculateFinalDecisionForReport($report, $session);
             $content .= "  - Rapport ID: {$report->report_id}, Titre: {$report->title}\n";
-            $content .= "    Décision finale: " . ($finalDecision ? $finalDecision->value : "Non décidée") . "\n";
+            $content .= '    Décision finale: '.($finalDecision ? $finalDecision->value : 'Non décidée')."\n";
             $content .= "    Commentaires des votes: \n";
             foreach ($report->votes()->where('commission_session_id', $session->id)->get() as $vote) {
                 $content .= "      - {$vote->teacher->first_name} {$vote->teacher->last_name} ({$vote->voteDecision->name}): {$vote->comment}\n";
@@ -276,7 +281,7 @@ class CommissionFlowService
     public function approvePv(Pv $pv, User $approverUser, PvApprovalDecisionEnum $decision, ?string $comment = null): void
     {
         $approverTeacher = $approverUser->teacher;
-        if (!$approverTeacher || !$pv->commissionSession->teachers->contains($approverTeacher->id)) {
+        if (! $approverTeacher || ! $pv->commissionSession->teachers->contains($approverTeacher->id)) {
             throw new AuthorizationException("L'utilisateur n'est pas un membre autorisé pour approuver ce PV.");
         }
         if ($pv->status !== PvStatusEnum::PENDING_APPROVAL && $pv->status !== PvStatusEnum::IN_REVISION) {
@@ -310,17 +315,17 @@ class CommissionFlowService
                             $pv,
                             $pv->author->user
                         );
-                        $this->notificationService->processNotificationRules("PV_APPROVED_DIFFUSED", $pv, ['pv_id' => $pv->pv_id]);
+                        $this->notificationService->processNotificationRules('PV_APPROVED_DIFFUSED', $pv, ['pv_id' => $pv->pv_id]);
                     } elseif ($pv->status === PvStatusEnum::REJECTED) {
-                        $this->notificationService->processNotificationRules("PV_REJECTED", $pv, ['pv_id' => $pv->pv_id]);
-                        $this->notificationService->sendInternalNotification("PV_REJECTED_NOTIFICATION", $pv->author->user, ['pv_id' => $pv->pv_id, 'comments' => $comment]);
+                        $this->notificationService->processNotificationRules('PV_REJECTED', $pv, ['pv_id' => $pv->pv_id]);
+                        $this->notificationService->sendInternalNotification('PV_REJECTED_NOTIFICATION', $pv->author->user, ['pv_id' => $pv->pv_id, 'comments' => $comment]);
                     } elseif ($pv->status === PvStatusEnum::CHANGES_REQUESTED) {
-                        $this->notificationService->processNotificationRules("PV_CHANGES_REQUESTED", $pv, ['pv_id' => $pv->pv_id]);
-                        $this->notificationService->sendInternalNotification("PV_CHANGES_REQUESTED_NOTIFICATION", $pv->author->user, ['pv_id' => $pv->pv_id, 'comments' => $comment]);
+                        $this->notificationService->processNotificationRules('PV_CHANGES_REQUESTED', $pv, ['pv_id' => $pv->pv_id]);
+                        $this->notificationService->sendInternalNotification('PV_CHANGES_REQUESTED_NOTIFICATION', $pv->author->user, ['pv_id' => $pv->pv_id, 'comments' => $comment]);
                     }
                 }
 
-                $this->auditService->logAction("PV_APPROVAL_RECORDED", $pv, ['pv_id' => $pv->pv_id, 'approver_id' => $approverUser->id, 'decision' => $decision->value]);
+                $this->auditService->logAction('PV_APPROVAL_RECORDED', $pv, ['pv_id' => $pv->pv_id, 'approver_id' => $approverUser->id, 'decision' => $decision->value]);
             });
         } catch (Throwable $e) {
             throw $e;
@@ -353,7 +358,7 @@ class CommissionFlowService
 
     public function forcePvApproval(Pv $pv, User $adminUser, string $reason): void
     {
-        if (!$adminUser->hasRole("Admin")) {
+        if (! $adminUser->hasRole('Admin')) {
             throw new AuthorizationException("Seul un administrateur peut forcer l'approbation d'un PV.");
         }
         if (empty($reason)) {
@@ -366,7 +371,7 @@ class CommissionFlowService
                 $pv->status = PvStatusEnum::APPROVED;
                 $pv->save();
 
-                $this->auditService->logAction("PV_APPROVAL_FORCED", $pv, [
+                $this->auditService->logAction('PV_APPROVAL_FORCED', $pv, [
                     'pv_id' => $pv->pv_id,
                     'admin_id' => $adminUser->id,
                     'reason' => $reason,
@@ -381,7 +386,7 @@ class CommissionFlowService
                     $adminUser
                 );
 
-                $this->notificationService->processNotificationRules("PV_APPROVAL_FORCED", $pv, ['pv_id' => $pv->pv_id, 'reason' => $reason]);
+                $this->notificationService->processNotificationRules('PV_APPROVAL_FORCED', $pv, ['pv_id' => $pv->pv_id, 'reason' => $reason]);
             });
         } catch (Throwable $e) {
             throw $e;

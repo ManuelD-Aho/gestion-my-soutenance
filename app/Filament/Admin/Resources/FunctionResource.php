@@ -1,86 +1,91 @@
 <?php
 
-    namespace App\Filament\Admin\Resources;
+declare(strict_types=1);
 
-    use App\Filament\Admin\Resources\FunctionResource\Pages;
-    use App\Models\Fonction;
-    use Filament\Forms\Components\Textarea;
-    use Filament\Forms\Components\TextInput;
-    use Filament\Forms\Form;
-    use Filament\Resources\Resource;
-    use Filament\Tables\Actions\DeleteAction;
-    use Filament\Tables\Actions\EditAction;
-    use Filament\Tables\Actions\ViewAction;
-    use Filament\Tables\Columns\TextColumn;
-    use Filament\Tables\Table;
+namespace App\Filament\Admin\Resources;
 
-    class FunctionResource extends Resource
+use App\Filament\Admin\Resources\FunctionResource\Pages;
+use App\Models\Fonction;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables\Actions\DeleteAction;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+
+class FunctionResource extends Resource
+{
+    protected static ?string $model = Fonction::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-briefcase';
+
+    protected static ?string $navigationGroup = 'Référentiels';
+
+    protected static ?string $modelLabel = 'Fonction';
+
+    protected static ?string $pluralModelLabel = 'Fonctions';
+
+    public static function form(Form $form): Form
     {
-        protected static ?string $model = Fonction::class;
-        protected static ?string $navigationIcon = 'heroicon-o-briefcase';
-        protected static ?string $navigationGroup = 'Référentiels';
-        protected static ?string $modelLabel = 'Fonction';
-        protected static ?string $pluralModelLabel = 'Fonctions';
-
-        public static function form(Form $form): Form
-        {
-            return $form
-                ->schema([
-                    TextInput::make('name')
-                        ->label('Nom de la fonction')
-                        ->required()
-                        ->unique(ignoreRecord: true)
-                        ->maxLength(100),
-                    Textarea::make('description')
-                        ->label('Description')
-                        ->columnSpanFull()
-                        ->nullable(),
-                ]);
-        }
-
-        public static function table(Table $table): Table
-        {
-            return $table
-                ->columns([
-                    TextColumn::make('name')
-                        ->label('Nom')
-                        ->searchable()
-                        ->sortable(),
-                    TextColumn::make('description')
-                        ->label('Description')
-                        ->limit(50),
-                ])
-                ->filters([
-                    //
-                ])
-                ->actions([
-                    EditAction::make(),
-                    DeleteAction::make(),
-                ])
-                ->bulkActions([
-                    //
-                ]);
-        }
-
-        public static function getRelations(): array
-        {
-            return [
-                //
-            ];
-        }
-
-        public static function getPages(): array
-        {
-            return [
-                'index' => Pages\ListFunctions::route('/'),
-                'create' => Pages\CreateFunction::route('/create'),
-                'edit' => Pages\EditFunction::route('/{record}/edit'),
-                'view' => Pages\ViewFunction::route('/{record}'),
-            ];
-        }
-
-        public static function getGloballySearchableAttributes(): array
-        {
-            return ['name'];
-        }
+        return $form
+            ->schema([
+                TextInput::make('name')
+                    ->label('Nom de la fonction')
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(100),
+                Textarea::make('description')
+                    ->label('Description')
+                    ->columnSpanFull()
+                    ->nullable(),
+            ]);
     }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('name')
+                    ->label('Nom')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('description')
+                    ->label('Description')
+                    ->limit(50),
+            ])
+            ->filters([
+                //
+            ])
+            ->actions([
+                EditAction::make(),
+                DeleteAction::make(),
+            ])
+            ->bulkActions([
+                //
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListFunctions::route('/'),
+            'create' => Pages\CreateFunction::route('/create'),
+            'edit' => Pages\EditFunction::route('/{record}/edit'),
+            'view' => Pages\ViewFunction::route('/{record}'),
+        ];
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name'];
+    }
+}

@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Storage; // Ajouter
-use App\Services\PdfGenerationService;
+// Ajouter
 use App\Services\NotificationService;
+use App\Services\PdfGenerationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -19,6 +21,7 @@ class GeneratePdfJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 1; // Un PDF qui échoue est souvent un problème de contenu ou de moteur, pas de transient error
+
     public int $timeout = 180; // 3 minutes de timeout pour les PDFs complexes
 
     public function __construct(
@@ -35,8 +38,9 @@ class GeneratePdfJob implements ShouldQueue
     public function handle(PdfGenerationService $pdfGenerationService, NotificationService $notificationService): void
     {
         $generatedBy = User::find($this->generatedById);
-        if (!$generatedBy) {
+        if (! $generatedBy) {
             Log::error("GeneratePdfJob: User generating PDF (ID: {$this->generatedById}) not found.");
+
             return;
         }
 
@@ -50,7 +54,7 @@ class GeneratePdfJob implements ShouldQueue
             );
 
             $notificationService->sendInternalNotification(
-                "DOCUMENT_GENERATED_SUCCESS",
+                'DOCUMENT_GENERATED_SUCCESS',
                 $generatedBy,
                 [
                     'document_type' => $this->documentType,
@@ -62,7 +66,7 @@ class GeneratePdfJob implements ShouldQueue
         } catch (Throwable $e) {
             Log::error("GeneratePdfJob: Échec de la génération PDF pour {$this->documentType} (ID: {$this->relatedEntity->getKey()}): {$e->getMessage()}");
             $notificationService->sendInternalNotification(
-                "DOCUMENT_GENERATED_FAILED",
+                'DOCUMENT_GENERATED_FAILED',
                 $generatedBy,
                 [
                     'document_type' => $this->documentType,

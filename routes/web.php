@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -26,6 +28,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         if (auth()->user()->hasRole('Admin')) {
             return redirect()->route('filament.admin.pages.dashboard');
         }
+
         // Assurez-vous que les autres rôles ont aussi une redirection spécifique si nécessaire
         // Sinon, ils iront par défaut au tableau de bord AppPanel
         return redirect()->route('filament.app.pages.dashboard');

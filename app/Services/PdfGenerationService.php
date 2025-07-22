@@ -1,21 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Document;
 use App\Models\DocumentType;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Barryvdh\DomPDF\Facade\Pdf; // Ou Spatie\LaravelPdf\Facades\Pdf si configuré
+use Illuminate\Support\Str; // Ou Spatie\LaravelPdf\Facades\Pdf si configuré
 use Throwable;
 
 class PdfGenerationService
 {
     protected UniqueIdGeneratorService $uniqueIdGeneratorService;
+
     protected AuditService $auditService;
 
     public function __construct(
@@ -37,7 +40,7 @@ class PdfGenerationService
             return DB::transaction(function () use ($viewName, $data, $documentType, $relatedEntity, $generatedBy) {
                 $storagePathConfig = $this->getStoragePathForDocumentType($documentType);
                 $filename = sprintf('%s_%s_%s.pdf', Str::slug($documentType), $relatedEntity->getKey(), Str::random(8));
-                $fullStoragePath = $storagePathConfig . '/' . $filename;
+                $fullStoragePath = $storagePathConfig.'/'.$filename;
 
                 $pdfContent = Pdf::loadView($viewName, $data)->output();
                 $fileHash = hash('sha256', $pdfContent);
@@ -47,7 +50,7 @@ class PdfGenerationService
                 $documentTypeModel = DocumentType::where('name', $documentType)->firstOrFail();
 
                 $document = Document::create([
-                    'document_id' => $this->uniqueIdGeneratorService->generate("DOC", (int)date('Y')),
+                    'document_id' => $this->uniqueIdGeneratorService->generate('DOC', (int) date('Y')),
                     'document_type_id' => $documentTypeModel->id,
                     'file_path' => $fullStoragePath,
                     'file_hash' => $fileHash,
@@ -58,10 +61,10 @@ class PdfGenerationService
                     'generated_by_user_id' => $generatedBy->id,
                 ]);
 
-                $this->auditService->logAction("DOCUMENT_GENERATED", $document, [
+                $this->auditService->logAction('DOCUMENT_GENERATED', $document, [
                     'document_id' => $document->document_id,
                     'document_type' => $documentType,
-                    'related_entity' => get_class($relatedEntity) . ":" . $relatedEntity->getKey(),
+                    'related_entity' => get_class($relatedEntity).':'.$relatedEntity->getKey(),
                     'generated_by' => $generatedBy->email,
                 ]);
 

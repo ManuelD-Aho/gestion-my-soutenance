@@ -1,24 +1,27 @@
 <?php
 
-    namespace App\Filament\AppPanel\Resources\ReportResource\Pages;
+declare(strict_types=1);
 
-    use App\Filament\AppPanel\Resources\ReportResource;
-    use Filament\Actions;
-    use Filament\Resources\Pages\ListRecords;
-    use Illuminate\Support\Facades\Auth;
+namespace App\Filament\AppPanel\Resources\ReportResource\Pages;
 
-    class ListReports extends ListRecords
+use App\Filament\AppPanel\Resources\ReportResource;
+use Filament\Actions;
+use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Auth;
+
+class ListReports extends ListRecords
+{
+    protected static string $resource = ReportResource::class;
+
+    protected function getHeaderActions(): array
     {
-        protected static string $resource = ReportResource::class;
-
-        protected function getHeaderActions(): array
-        {
-            $user = Auth::user();
-            if ($user->hasRole('Etudiant')) {
-                return [
-                    Actions\CreateAction::make(),
-                ];
-            }
-            return [];
+        $user = Auth::user();
+        if ($user->hasRole('Etudiant')) {
+            return [
+                Actions\CreateAction::make(),
+            ];
         }
+
+        return [];
     }
+}

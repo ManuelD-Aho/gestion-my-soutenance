@@ -1,10 +1,12 @@
 <?php
 
-    namespace App\Enums;
+declare(strict_types=1);
 
-    enum CommissionSessionModeEnum: string
-    {
-        case IN_PERSON = 'Présentiel';
-        case ONLINE = 'En ligne';
-        case HYBRID = 'Hybride';
-    }
+namespace App\Enums;
+
+enum CommissionSessionModeEnum: string
+{
+    case IN_PERSON = 'Présentiel';
+    case ONLINE = 'En ligne';
+    case HYBRID = 'Hybride';
+}

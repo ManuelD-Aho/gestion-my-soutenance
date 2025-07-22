@@ -1,24 +1,27 @@
 <?php
 
-    namespace App\Filament\AppPanel\Resources\StudentResource\Pages;
+declare(strict_types=1);
 
-    use App\Filament\AppPanel\Resources\StudentResource;
-    use Filament\Actions;
-    use Filament\Resources\Pages\ListRecords;
-    use Illuminate\Support\Facades\Auth;
+namespace App\Filament\AppPanel\Resources\StudentResource\Pages;
 
-    class ListStudents extends ListRecords
+use App\Filament\AppPanel\Resources\StudentResource;
+use Filament\Actions;
+use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Auth;
+
+class ListStudents extends ListRecords
+{
+    protected static string $resource = StudentResource::class;
+
+    protected function getHeaderActions(): array
     {
-        protected static string $resource = StudentResource::class;
-
-        protected function getHeaderActions(): array
-        {
-            $user = Auth::user();
-            if ($user->hasRole('Responsable Scolarite')) {
-                return [
-                    Actions\CreateAction::make(),
-                ];
-            }
-            return [];
+        $user = Auth::user();
+        if ($user->hasRole('Responsable Scolarite')) {
+            return [
+                Actions\CreateAction::make(),
+            ];
         }
+
+        return [];
     }
+}

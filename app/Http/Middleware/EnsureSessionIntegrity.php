@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Models\User; // Assurez-vous d'importer le modèle User
@@ -34,7 +36,7 @@ class EnsureSessionIntegrity
                 $lastUserAgent = $request->session()->get('last_user_agent');
 
                 if ($currentIp !== $lastIp || $currentUserAgent !== $lastUserAgent) {
-                    Log::warning("Activité de session suspecte détectée pour l'utilisateur " . $user->id, [ // Utiliser $user->id
+                    Log::warning("Activité de session suspecte détectée pour l'utilisateur ".$user->id, [ // Utiliser $user->id
                         'user_id' => $user->id,
                         'old_ip' => $lastIp,
                         'new_ip' => $currentIp,

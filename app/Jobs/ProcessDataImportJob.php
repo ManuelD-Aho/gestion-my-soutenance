@@ -1,18 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
-use App\Imports\StudentsImport; // Peut être généralisé avec un paramètre $importClass
-use App\Models\User;
-use Illuminate\Support\Facades\Log; // Ajouter
-use Illuminate\Support\Facades\Storage; // Ajouter
-use App\Imports\ReportsImport; // Ajouter si ReportsImport est dynamiquement appelé
-use App\Services\NotificationService;
-use Illuminate\Bus\Queueable;
+use App\Imports\ReportsImport; // Peut être généralisé avec un paramètre $importClass
+use App\Imports\StudentsImport;
+use App\Models\User; // Ajouter
+use App\Services\NotificationService; // Ajouter
+use Illuminate\Bus\Queueable; // Ajouter si ReportsImport est dynamiquement appelé
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
@@ -21,6 +23,7 @@ class ProcessDataImportJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 300; // 5 minutes de timeout
 
     public function __construct(
@@ -35,8 +38,9 @@ class ProcessDataImportJob implements ShouldQueue
     public function handle(NotificationService $notificationService): void
     {
         $importer = User::find($this->importerId);
-        if (!$importer) {
+        if (! $importer) {
             Log::error("ProcessDataImportJob: Importer user (ID: {$this->importerId}) not found.");
+
             return;
         }
 
@@ -49,12 +53,12 @@ class ProcessDataImportJob implements ShouldQueue
             };
 
             $importInstance = new $importClass($this->mapping, $importer);
-            Excel::import($importInstance, storage_path('app/' . $this->filePath)); // Le chemin est relatif à storage/app
+            Excel::import($importInstance, storage_path('app/'.$this->filePath)); // Le chemin est relatif à storage/app
 
             $results = $importInstance->getResults();
 
             $notificationService->sendInternalNotification(
-                "IMPORT_COMPLETED",
+                'IMPORT_COMPLETED',
                 $importer,
                 [
                     'entity_type' => $this->entityType,
@@ -70,7 +74,7 @@ class ProcessDataImportJob implements ShouldQueue
         } catch (Throwable $e) {
             Log::error("ProcessDataImportJob: Échec de l'importation pour le fichier {$this->filePath}: {$e->getMessage()}");
             $notificationService->sendInternalNotification(
-                "IMPORT_FAILED",
+                'IMPORT_FAILED',
                 $importer,
                 [
                     'entity_type' => $this->entityType,

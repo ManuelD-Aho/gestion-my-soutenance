@@ -1,10 +1,12 @@
 <?php
 
-    namespace App\Enums;
+declare(strict_types=1);
 
-    enum ConformityStatusEnum: string
-    {
-        case CONFORME = 'Conforme';
-        case NON_CONFORME = 'Non Conforme';
-        case NON_APPLICABLE = 'Non Applicable';
-    }
+namespace App\Enums;
+
+enum ConformityStatusEnum: string
+{
+    case CONFORME = 'Conforme';
+    case NON_CONFORME = 'Non Conforme';
+    case NON_APPLICABLE = 'Non Applicable';
+}

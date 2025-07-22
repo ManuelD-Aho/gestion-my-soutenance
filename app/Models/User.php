@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Enums\UserAccountStatusEnum;
@@ -17,10 +19,12 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, HasProfilePhoto, HasTeams, Notifiable, TwoFactorAuthenticatable, HasRoles, Impersonate;
+    use HasApiTokens, HasFactory, HasProfilePhoto, HasRoles, HasTeams, Impersonate, Notifiable, TwoFactorAuthenticatable;
 
     protected $primaryKey = 'id';
+
     public $incrementing = true;
+
     protected $keyType = 'int';
 
     protected $fillable = [
@@ -63,7 +67,7 @@ class User extends Authenticatable
 
     public function canBeImpersonated(): bool
     {
-        return !$this->hasRole('Admin');
+        return ! $this->hasRole('Admin');
     }
 
     public function student(): HasOne

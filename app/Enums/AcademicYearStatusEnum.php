@@ -1,10 +1,12 @@
 <?php
 
-    namespace App\Enums;
+declare(strict_types=1);
 
-    enum AcademicYearStatusEnum: string
-    {
-        case ACTIVE = 'Active';
-        case ARCHIVED = 'Archivée';
-        case PLANNED = 'Planifiée';
-    }
+namespace App\Enums;
+
+enum AcademicYearStatusEnum: string
+{
+    case ACTIVE = 'Active';
+    case ARCHIVED = 'Archivée';
+    case PLANNED = 'Planifiée';
+}

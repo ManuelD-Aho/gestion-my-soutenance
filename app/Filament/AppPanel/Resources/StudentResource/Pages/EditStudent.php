@@ -1,36 +1,38 @@
 <?php
 
-    namespace App\Filament\AppPanel\Resources\StudentResource\Pages;
+declare(strict_types=1);
 
-    use App\Filament\AppPanel\Resources\StudentResource;
-    use Filament\Resources\Pages\EditRecord;
-    use Filament\Notifications\Notification;
-    use Illuminate\Support\Facades\Auth;
-    use Filament\Actions;
+namespace App\Filament\AppPanel\Resources\StudentResource\Pages;
 
-    class EditStudent extends EditRecord
+use App\Filament\AppPanel\Resources\StudentResource;
+use Filament\Actions;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Auth;
+
+class EditStudent extends EditRecord
+{
+    protected static string $resource = StudentResource::class;
+
+    protected function getHeaderActions(): array
     {
-        protected static string $resource = StudentResource::class;
+        $user = Auth::user();
+        $isAdmin = $user->hasRole('Admin');
 
-        protected function getHeaderActions(): array
-        {
-            $user = Auth::user();
-            $isAdmin = $user->hasRole('Admin');
+        $actions = [];
 
-            $actions = [];
-
-            if ($isAdmin) {
-                $actions[] = Actions\DeleteAction::make();
-            }
-
-            return $actions;
+        if ($isAdmin) {
+            $actions[] = Actions\DeleteAction::make();
         }
 
-        protected function getSavedNotification(): ?Notification
-        {
-            return Notification::make()
-                ->title('Fiche étudiant mise à jour')
-                ->body('Les informations de l\'étudiant ont été modifiées avec succès.')
-                ->success();
-        }
+        return $actions;
     }
+
+    protected function getSavedNotification(): ?Notification
+    {
+        return Notification::make()
+            ->title('Fiche étudiant mise à jour')
+            ->body('Les informations de l\'étudiant ont été modifiées avec succès.')
+            ->success();
+    }
+}

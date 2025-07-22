@@ -1,23 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Imports;
 
 use App\Models\Report;
-use App\Models\User; // Ajouter
-use Illuminate\Support\Facades\Log; // Ajouter
-use App\Models\Student;
+use App\Models\Student; // Ajouter
+// Ajouter
+use App\Models\User;
 use App\Services\ReportFlowService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Illuminate\Support\Facades\Validator;
 use Throwable;
 
 class ReportsImport implements ToCollection, WithHeadingRow
 {
     protected array $mapping;
+
     protected User $importer;
+
     protected ReportFlowService $reportFlowService;
+
     protected array $results = ['success' => 0, 'failed' => 0, 'errors' => []];
 
     public function __construct(array $mapping, User $importer)

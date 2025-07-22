@@ -1,24 +1,27 @@
 <?php
 
-    namespace App\Filament\AppPanel\Resources\CommissionSessionResource\Pages;
+declare(strict_types=1);
 
-    use App\Filament\AppPanel\Resources\CommissionSessionResource;
-    use Filament\Actions;
-    use Filament\Resources\Pages\ListRecords;
-    use Illuminate\Support\Facades\Auth;
+namespace App\Filament\AppPanel\Resources\CommissionSessionResource\Pages;
 
-    class ListCommissionSessions extends ListRecords
+use App\Filament\AppPanel\Resources\CommissionSessionResource;
+use Filament\Actions;
+use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Auth;
+
+class ListCommissionSessions extends ListRecords
+{
+    protected static string $resource = CommissionSessionResource::class;
+
+    protected function getHeaderActions(): array
     {
-        protected static string $resource = CommissionSessionResource::class;
-
-        protected function getHeaderActions(): array
-        {
-            $user = Auth::user();
-            if ($user->hasRole('President Commission')) {
-                return [
-                    Actions\CreateAction::make(),
-                ];
-            }
-            return [];
+        $user = Auth::user();
+        if ($user->hasRole('President Commission')) {
+            return [
+                Actions\CreateAction::make(),
+            ];
         }
+
+        return [];
     }
+}

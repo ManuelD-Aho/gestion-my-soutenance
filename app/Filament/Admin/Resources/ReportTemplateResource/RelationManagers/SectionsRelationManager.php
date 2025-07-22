@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Admin\Resources\ReportTemplateResource\RelationManagers;
 
 use Filament\Forms;
@@ -9,6 +11,7 @@ use Filament\Tables;
 class SectionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'sections';
+
     protected static ?string $recordTitleAttribute = 'title';
 
     public function form(Forms\Form $form): Forms\Form // Removed static

@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
-use App\Models\User;
-use App\Models\Report;
 use App\Enums\ReportStatusEnum;
+use App\Models\Report;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class ReportPolicy
@@ -30,12 +32,12 @@ class ReportPolicy
         }
 
         // Agent de Conformité peut voir les rapports en vérification ou nécessitant correction.
-        if ($user->hasRole('Agent de Conformite') && in_array($report->status, [ReportStatusEnum::SUBMITTED, ReportStatusEnum::IN_CONFORMITY_CHECK, ReportStatusEnum::NEEDS_CORRECTION])) {
+        if ($user->hasRole('Agent de Conformite') && in_array($report->status, [ReportStatusEnum::SUBMITTED, ReportStatusEnum::IN_CONFORMITY_CHECK, ReportStatusEnum::NEEDS_CORRECTION], true)) {
             return true;
         }
 
         // Membre/Président Commission peut voir les rapports en commission ou validés/rejetés.
-        if ($user->hasAnyRole(['Membre Commission', 'President Commission']) && in_array($report->status, [ReportStatusEnum::IN_COMMISSION_REVIEW, ReportStatusEnum::VALIDATED, ReportStatusEnum::REJECTED])) {
+        if ($user->hasAnyRole(['Membre Commission', 'President Commission']) && in_array($report->status, [ReportStatusEnum::IN_COMMISSION_REVIEW, ReportStatusEnum::VALIDATED, ReportStatusEnum::REJECTED], true)) {
             // Logique plus fine: seulement si le rapport est assigné à leur session, etc.
             // Pour l'instant, une vue plus large est acceptée.
             return true;
@@ -63,7 +65,7 @@ class ReportPolicy
 
         // Étudiant peut modifier son propre rapport s'il est en brouillon ou nécessite correction.
         if ($user->hasRole('Etudiant') && $user->student && $report->student_id === $user->student->id) {
-            return in_array($report->status, [ReportStatusEnum::DRAFT, ReportStatusEnum::NEEDS_CORRECTION]);
+            return in_array($report->status, [ReportStatusEnum::DRAFT, ReportStatusEnum::NEEDS_CORRECTION], true);
         }
 
         return false;
@@ -97,8 +99,8 @@ class ReportPolicy
         if ($user->hasRole('Agent de Conformite')) {
             // L'Agent de Conformité peut faire passer un rapport soumis ou en vérification
             // vers 'En vérification conformité' ou 'Nécessite Correction' ou 'En Commission'.
-            if (in_array($report->status, [ReportStatusEnum::SUBMITTED, ReportStatusEnum::IN_CONFORMITY_CHECK])) {
-                return in_array($newStatus, [ReportStatusEnum::IN_CONFORMITY_CHECK, ReportStatusEnum::NEEDS_CORRECTION, ReportStatusEnum::IN_COMMISSION_REVIEW]);
+            if (in_array($report->status, [ReportStatusEnum::SUBMITTED, ReportStatusEnum::IN_CONFORMITY_CHECK], true)) {
+                return in_array($newStatus, [ReportStatusEnum::IN_CONFORMITY_CHECK, ReportStatusEnum::NEEDS_CORRECTION, ReportStatusEnum::IN_COMMISSION_REVIEW], true);
             }
         }
 
@@ -106,7 +108,7 @@ class ReportPolicy
             // Les membres de la commission peuvent faire passer un rapport 'En Commission'
             // vers 'Validé', 'Rejeté', ou 'Nécessite Correction'.
             if ($report->status === ReportStatusEnum::IN_COMMISSION_REVIEW) {
-                return in_array($newStatus, [ReportStatusEnum::VALIDATED, ReportStatusEnum::REJECTED, ReportStatusEnum::NEEDS_CORRECTION]);
+                return in_array($newStatus, [ReportStatusEnum::VALIDATED, ReportStatusEnum::REJECTED, ReportStatusEnum::NEEDS_CORRECTION], true);
             }
         }
 
