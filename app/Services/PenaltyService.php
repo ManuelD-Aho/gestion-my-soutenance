@@ -137,4 +137,20 @@ class PenaltyService
     {
         return ! $student->penalties()->where('status', PenaltyStatusEnum::DUE)->exists();
     }
+
+    /**
+     * Vérifie si l'utilisateur étudiant est éligible (pas de pénalités bloquantes, profil lié, etc.)
+     */
+    public function isStudentEligible(User $user): bool
+    {
+        if ($user && $user->hasRole('Etudiant')) {
+            if (! $user->student) {
+                return false;
+            }
+            if (! $this->checkStudentEligibility($user->student)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
