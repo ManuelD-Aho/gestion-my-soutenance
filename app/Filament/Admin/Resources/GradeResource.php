@@ -1,51 +1,85 @@
 <?php
 
-namespace App\Filament\Admin\Resources;
+    namespace App\Filament\Admin\Resources;
 
-use App\Filament\Admin\Resources\GradeResource\Pages;
-use App\Models\Grade;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables\Table;
+    use App\Filament\Admin\Resources\GradeResource\Pages;
+    use App\Models\Grade;
+    use Filament\Forms\Components\TextInput;
+    use Filament\Forms\Form;
+    use Filament\Resources\Resource;
+    use Filament\Tables\Actions\DeleteAction;
+    use Filament\Tables\Actions\EditAction;
+    use Filament\Tables\Actions\ViewAction;
+    use Filament\Tables\Columns\TextColumn;
+    use Filament\Tables\Table;
 
-class GradeResource extends Resource
-{
-    protected static ?string $model = \App\Models\Grade::class;
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationGroup = 'Gestion Admin';
-
-    public static function form(Form $form): Form
+    class GradeResource extends Resource
     {
-        return $form->schema([
-            // Define form fields here
-        ]);
-    }
+        protected static ?string $model = Grade::class;
+        protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+        protected static ?string $navigationGroup = 'Référentiels';
+        protected static ?string $modelLabel = 'Grade';
+        protected static ?string $pluralModelLabel = 'Grades';
 
-    public static function table(Table $table): Table
-    {
-        return $table->columns([
-            // Define table columns here
-        ])->actions([
-            // Define actions here
-        ])->bulkActions([
-            // Define bulk actions here
-        ]);
-    }
+        public static function form(Form $form): Form
+        {
+            return $form
+                ->schema([
+                    TextInput::make('name')
+                        ->label('Nom du grade')
+                        ->required()
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(50),
+                    TextInput::make('abbreviation')
+                        ->label('Abréviation')
+                        ->maxLength(10)
+                        ->nullable(),
+                ]);
+        }
 
-    public static function getRelations(): array
-    {
-        return [
-            // Define relations here
-        ];
-    }
+        public static function table(Table $table): Table
+        {
+            return $table
+                ->columns([
+                    TextColumn::make('name')
+                        ->label('Nom')
+                        ->searchable()
+                        ->sortable(),
+                    TextColumn::make('abbreviation')
+                        ->label('Abréviation')
+                        ->searchable(),
+                ])
+                ->filters([
+                    //
+                ])
+                ->actions([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ])
+                ->bulkActions([
+                    //
+                ]);
+        }
 
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListGrades::route('/'),
-            'create' => Pages\CreateGrade::route('/create'),
-            'edit' => Pages\EditGrade::route('/{record}/edit'),
-            'view' => Pages\ViewGrade::route('/{record}'),
-        ];
+        public static function getRelations(): array
+        {
+            return [
+                //
+            ];
+        }
+
+        public static function getPages(): array
+        {
+            return [
+                'index' => Pages\ListGrades::route('/'),
+                'create' => Pages\CreateGrade::route('/create'),
+                'edit' => Pages\EditGrade::route('/{record}/edit'),
+                'view' => Pages\ViewGrade::route('/{record}'),
+            ];
+        }
+
+        public static function getGloballySearchableAttributes(): array
+        {
+            return ['name', 'abbreviation'];
+        }
     }
-}

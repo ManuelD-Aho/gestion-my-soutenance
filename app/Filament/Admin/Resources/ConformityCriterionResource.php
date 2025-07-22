@@ -1,51 +1,120 @@
 <?php
 
-namespace App\Filament\Admin\Resources;
+    namespace App\Filament\Admin\Resources;
 
-use App\Filament\Admin\Resources\ConformityCriterionResource\Pages;
-use App\Models\ConformityCriterion;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables\Table;
+    use App\Filament\Admin\Resources\ConformityCriterionResource\Pages;
+    use App\Models\ConformityCriterion;
+    use Filament\Forms\Components\Select;
+    use Filament\Forms\Components\Textarea;
+    use Filament\Forms\Components\TextInput;
+    use Filament\Forms\Components\Toggle;
+    use Filament\Forms\Form;
+    use Filament\Resources\Resource;
+    use Filament\Tables\Actions\DeleteAction;
+    use Filament\Tables\Actions\EditAction;
+    use Filament\Tables\Actions\ViewAction;
+    use Filament\Tables\Columns\IconColumn;
+    use Filament\Tables\Columns\TextColumn;
+    use Filament\Tables\Table;
 
-class ConformityCriterionResource extends Resource
-{
-    protected static ?string $model = \App\Models\ConformityCriterion::class;
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationGroup = 'Gestion Admin';
-
-    public static function form(Form $form): Form
+    class ConformityCriterionResource extends Resource
     {
-        return $form->schema([
-            // Define form fields here
-        ]);
-    }
+        protected static ?string $model = ConformityCriterion::class;
+        protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
+        protected static ?string $navigationGroup = 'Configuration Système';
+        protected static ?string $modelLabel = 'Critère de Conformité';
+        protected static ?string $pluralModelLabel = 'Critères de Conformité';
 
-    public static function table(Table $table): Table
-    {
-        return $table->columns([
-            // Define table columns here
-        ])->actions([
-            // Define actions here
-        ])->bulkActions([
-            // Define bulk actions here
-        ]);
-    }
+        public static function form(Form $form): Form
+        {
+            return $form
+                ->schema([
+                    TextInput::make('label')
+                        ->label('Libellé du critère')
+                        ->required()
+                        ->maxLength(255),
+                    Textarea::make('description')
+                        ->label('Description')
+                        ->columnSpanFull()
+                        ->nullable(),
+                    Toggle::make('is_active')
+                        ->label('Actif')
+                        ->default(true),
+                    Select::make('type')
+                        ->label('Type')
+                        ->options([
+                            'MANUAL' => 'Manuel',
+                            'AUTOMATIC' => 'Automatique',
+                        ])
+                        ->required(),
+                    TextInput::make('version')
+                        ->label('Version')
+                        ->numeric()
+                        ->default(1)
+                        ->disabledOn('create'),
+                    TextInput::make('code')
+                        ->label('Code (pour Automatique)')
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(50)
+                        ->nullable()
+                        ->visible(fn (Select $component) => $component->getState() === 'AUTOMATIC'),
+                ]);
+        }
 
-    public static function getRelations(): array
-    {
-        return [
-            // Define relations here
-        ];
-    }
+        public static function table(Table $table): Table
+        {
+            return $table
+                ->columns([
+                    TextColumn::make('label')
+                        ->label('Libellé')
+                        ->searchable()
+                        ->sortable(),
+                    TextColumn::make('type')
+                        ->label('Type'),
+                    IconColumn::make('is_active')
+                        ->label('Actif')
+                        ->boolean(),
+                    TextColumn::make('version')
+                        ->label('Version'),
+                    TextColumn::make('code')
+                        ->label('Code'),
+                ])
+                ->filters([
+                    Select::make('type')
+                        ->label('Filtrer par Type')
+                        ->options([
+                            'MANUAL' => 'Manuel',
+                            'AUTOMATIC' => 'Automatique',
+                        ]),
+                ])
+                ->actions([
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ])
+                ->bulkActions([
+                    //
+                ]);
+        }
 
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListConformityCriterions::route('/'),
-            'create' => Pages\CreateConformityCriterion::route('/create'),
-            'edit' => Pages\EditConformityCriterion::route('/{record}/edit'),
-            'view' => Pages\ViewConformityCriterion::route('/{record}'),
-        ];
+        public static function getRelations(): array
+        {
+            return [
+                //
+            ];
+        }
+
+        public static function getPages(): array
+        {
+            return [
+                'index' => Pages\ListConformityCriterions::route('/'),
+                'create' => Pages\CreateConformityCriterion::route('/create'),
+                'edit' => Pages\EditConformityCriterion::route('/{record}/edit'),
+                'view' => Pages\ViewConformityCriterion::route('/{record}'),
+            ];
+        }
+
+        public static function getGloballySearchableAttributes(): array
+        {
+            return ['label', 'code'];
+        }
     }
-}
