@@ -10,7 +10,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolesAndPermissionsSeeder::class,
-            // ReferentialSeeder::class, // Sera créé par le script
+            ReferentialSeeder::class,
+            TestDataSeeder::class,
         ]);
     }
 }
