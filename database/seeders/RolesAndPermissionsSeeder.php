@@ -4,45 +4,38 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Enums\GenderEnum;
 use App\Enums\UserAccountStatusEnum;
+use App\Models\AdministrativeStaff;
+use App\Models\Student;
 use App\Models\Team;
+use App\Models\Teacher;
 use App\Models\User;
 use App\Services\UniqueIdGeneratorService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role; // Import du service
+use Spatie\Permission\Models\Role;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-        $uniqueIdGeneratorService = app(UniqueIdGeneratorService::class); // Instancier le service
+        $uniqueIdGeneratorService = app(UniqueIdGeneratorService::class);
 
         // 1. Créer les Permissions
         $permissions = [
-            // Administrateur
             'manage_system_settings', 'manage_users', 'manage_roles_permissions',
             'manage_referentials', 'view_audit_logs', 'view_horizon_dashboard',
             'manage_academic_years', 'manage_all_reports', 'impersonate_users',
-
-            // Étudiant
             'view_student_dashboard', 'manage_own_profile', 'submit_own_report',
             'view_own_documents', 'manage_own_reclamations',
-
-            // Responsable Scolarité
             'view_rs_dashboard', 'manage_students_rs', 'validate_internships',
             'manage_penalties', 'generate_official_documents', 'handle_student_reclamations',
             'manage_enrollments', 'manage_grades',
-
-            // Agent de Conformité
             'view_conformity_dashboard', 'check_report_conformity',
-
-            // Membre Commission
             'view_commission_dashboard', 'view_commission_sessions', 'manage_pvs', 'vote_on_reports',
-
-            // Président Commission
             'manage_commission_sessions_president', 'arbitrate_commission_votes',
         ];
 
@@ -83,7 +76,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage_commission_sessions_president', 'arbitrate_commission_votes',
         ]);
 
-        // 3. Créer les utilisateurs par défaut
+        // 3. Créer les utilisateurs par défaut et les lier aux entités métier
         $currentYear = (int) date('Y');
 
         // Admin
@@ -118,6 +111,19 @@ class RolesAndPermissionsSeeder extends Seeder
             ]
         );
         $studentUser->assignRole($studentRole);
+        // Lier l'utilisateur à une entité Student
+        Student::firstOrCreate(
+            ['email_contact_personnel' => $studentUser->email],
+            [
+                'student_card_number' => $uniqueIdGeneratorService->generate('ETU', $currentYear),
+                'first_name' => 'Manuel',
+                'last_name' => 'Poan',
+                'user_id' => $studentUser->id,
+                'is_active' => true,
+                'date_of_birth' => '2000-01-01',
+                'gender' => GenderEnum::MASCULIN,
+            ]
+        );
 
         // Responsable Scolarité
         $rsUser = User::firstOrCreate(
@@ -131,6 +137,18 @@ class RolesAndPermissionsSeeder extends Seeder
             ]
         );
         $rsUser->assignRole($rsRole);
+        // Lier l'utilisateur à une entité AdministrativeStaff
+        AdministrativeStaff::firstOrCreate(
+            ['professional_email' => $rsUser->email],
+            [
+                'staff_id' => $uniqueIdGeneratorService->generate('ADM', $currentYear),
+                'first_name' => 'Sophie',
+                'last_name' => 'Dubois',
+                'user_id' => $rsUser->id,
+                'is_active' => true,
+                'service_assignment_date' => now(),
+            ]
+        );
 
         // Agent de Conformité
         $conformityAgentUser = User::firstOrCreate(
@@ -144,6 +162,19 @@ class RolesAndPermissionsSeeder extends Seeder
             ]
         );
         $conformityAgentUser->assignRole($conformityAgentRole);
+        // Lier l'utilisateur à une entité AdministrativeStaff
+        AdministrativeStaff::firstOrCreate(
+            ['professional_email' => $conformityAgentUser->email],
+            [
+                'staff_id' => $uniqueIdGeneratorService->generate('ADM', $currentYear),
+                'first_name' => 'Marc',
+                'last_name' => 'Durand',
+                'user_id' => $conformityAgentUser->id,
+                'is_active' => true,
+                'service_assignment_date' => now(),
+                'key_responsibilities' => 'Vérification de la conformité des rapports',
+            ]
+        );
 
         // Membre Commission
         $memberUser = User::firstOrCreate(
@@ -157,6 +188,17 @@ class RolesAndPermissionsSeeder extends Seeder
             ]
         );
         $memberUser->assignRole($commissionMemberRole);
+        // Lier l'utilisateur à une entité Teacher
+        Teacher::firstOrCreate(
+            ['professional_email' => $memberUser->email],
+            [
+                'teacher_id' => $uniqueIdGeneratorService->generate('ENS', $currentYear),
+                'first_name' => 'Alice',
+                'last_name' => 'Martin',
+                'user_id' => $memberUser->id,
+                'is_active' => true,
+            ]
+        );
 
         // Président Commission
         $presidentUser = User::firstOrCreate(
@@ -170,5 +212,16 @@ class RolesAndPermissionsSeeder extends Seeder
             ]
         );
         $presidentUser->assignRole($commissionPresidentRole);
+        // Lier l'utilisateur à une entité Teacher
+        Teacher::firstOrCreate(
+            ['professional_email' => $presidentUser->email],
+            [
+                'teacher_id' => $uniqueIdGeneratorService->generate('ENS', $currentYear),
+                'first_name' => 'David',
+                'last_name' => 'Bernard',
+                'user_id' => $presidentUser->id,
+                'is_active' => true,
+            ]
+        );
     }
 }

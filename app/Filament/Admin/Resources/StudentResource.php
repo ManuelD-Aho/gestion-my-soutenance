@@ -15,7 +15,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
-use Filament\Forms\Get; // Ajout de l'import Get
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action;
@@ -46,6 +46,7 @@ class StudentResource extends Resource
                     ->unique(ignoreRecord: true)
                     ->maxLength(50)
                     ->disabledOn('edit')
+                    ->hiddenOn('create') // <-- LA LIGNE CORRIGÉE
                     ->visibleOn('view')
                     ->dehydrateStateUsing(fn (?string $state): string => $state ?? app(UniqueIdGeneratorService::class)->generate('ETU', (int) date('Y'))),
                 TextInput::make('first_name')
@@ -59,7 +60,7 @@ class StudentResource extends Resource
                 TextInput::make('email_contact_personnel')
                     ->label('Email Personnel (pour compte)')
                     ->email()
-                    ->unique(ignoreRecord: true) // Simplification ici
+                    ->unique(ignoreRecord: true)
                     ->maxLength(255)
                     ->nullable(),
                 Select::make('user_id')
@@ -123,12 +124,12 @@ class StudentResource extends Resource
                 Toggle::make('is_active')
                     ->label('Profil Actif')
                     ->default(true)
-                    ->live() // Ajout de live() pour la réactivité
+                    ->live()
                     ->helperText('Désactiver pour archiver le profil sans le supprimer.'),
                 DatePicker::make('end_date')
                     ->label('Date de fin de scolarité')
                     ->nullable()
-                    ->visible(fn (Get $get): bool => ! $get('is_active')), // Correction ici
+                    ->visible(fn (Get $get): bool => ! $get('is_active')),
             ]);
     }
 

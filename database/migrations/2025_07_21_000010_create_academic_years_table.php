@@ -17,6 +17,7 @@ return new class extends Migration
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
             $table->boolean('is_active')->default(false)->comment('Indique si c\'est l\'année académique courante');
+            $table->string('status', 50)->default('planned');
             $table->timestamp('report_submission_deadline')->nullable()->comment('Date limite de soumission des rapports pour cette année académique');
             $table->timestamps();
         });
